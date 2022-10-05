@@ -815,7 +815,7 @@ export default class QuarkBuild {
 	 */
 	initialize() {
 		var self = this;
-		var project_name = path.basename(process.cwd()) || 'noprojroj';
+		var project_name = path.basename(process.cwd()) || 'qkproj';
 		var proj_keys = this.source + '/proj.keys';
 		var proj: Dict = { '@projectName': project_name };
 		var default_modules = paths.default_modules;

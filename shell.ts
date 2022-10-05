@@ -19,19 +19,19 @@ def_opts(['port', 'p'], 1026, 	'--port=PORT,-p PORT Run quark debugger server po
 
 if ( opts.help || opts.h /*cmd == 'help' || cmd == 'h'*/ ) {
 	console.log('');
-	console.log('Usage: noproj COMMAND [OS]');
-	console.log('Usage: noproj [OPTION]...');
+	console.log('Usage: qkmake COMMAND [OS]');
+	console.log('Usage: qkmake [OPTION]...');
 	console.log('');
 	console.log('Examples:');
-	console.log('`noproj init`');
-	console.log('`noproj build`');
-	console.log('`noproj rebuild`');
-	console.log('`noproj export ios`');
-	console.log('`noproj export android`');
-	console.log('`noproj install`');
-	console.log('`noproj clear`');
-	console.log('`noproj`');
-	// console.log('`noproj -r http://192.168.1.124:1026`');
+	console.log('`qkmake init`');
+	console.log('`qkmake build`');
+	console.log('`qkmake rebuild`');
+	console.log('`qkmake export ios`');
+	console.log('`qkmake export android`');
+	console.log('`qkmake install`');
+	console.log('`qkmake clear`');
+	console.log('`qkmake`');
+	// console.log('`qkmake -r http://192.168.1.124:1026`');
 	console.log('');
 	console.log('Defaults for the options are specified in brackets.');
 	console.log('');
@@ -40,7 +40,7 @@ if ( opts.help || opts.h /*cmd == 'help' || cmd == 'h'*/ ) {
 	console.log('');
 }
 else if ( cmd == 'export' ) {
-	util.assert(args.length, 'export Bad argument. system name required, for example "noproj export ios"');
+	util.assert(args.length, 'export Bad argument. system name required, for example "qkmake export ios"');
 	new QuarkExport(process.cwd(), args[0]).export().catch(e=>console.error(e));
 } 
 else if ( cmd == 'build' || cmd == 'rebuild' || cmd == 'init' ) {
