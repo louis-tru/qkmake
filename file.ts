@@ -42,7 +42,7 @@ function resolveLocal(...args: string[]) {
 
 export default class File extends HttpService {
 
-	async action(info: any) {
+	async onAction(info: any) {
 		var log = 'Request: ' + this.url;
 		console.log(log);
 		remote_log.remote_log_print(log);
@@ -55,7 +55,7 @@ export default class File extends HttpService {
 		else if ( /\/versions.json$/.test(this.pathname) ) {
 			return this.versions_json({ pathname:this.pathname });
 		}
-		super.action(info);
+		super.onAction(info);
 	}
 
 	marked_assets({pathname}: {pathname:string}) {
