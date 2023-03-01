@@ -31,7 +31,7 @@
 #include <quark/platforms/mac-app.h>
 #include <quark-js/quark.h>
 
-using namespace quark;
+using namespace qk;
 
 @interface MyApplication: ApplicationDelegate
 @end
@@ -43,7 +43,7 @@ using namespace quark;
 }
 @end
 
-FX_GUI_MAIN() {
+Qk_Main() {
 	
 	[ApplicationDelegate set_application_delegate:NSStringFromClass(MyApplication.class)];
 	
