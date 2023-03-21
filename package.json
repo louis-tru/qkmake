@@ -43,7 +43,7 @@
 		"typescript": "~3.7.4"
 	},
 	"devDependencies": {
-		"@types/node": "~12.12.20"
+		"@types/node": "~14.14.22"
 	},
 	"license": "BSD-2-Clause",
 	"bugs": {

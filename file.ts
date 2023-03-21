@@ -29,7 +29,6 @@
  * ***** END LICENSE BLOCK ***** */
 
 import util from 'somes';
-import service from 'somes/service';
 import { HttpService } from 'somes/http_service';
 import path from 'somes/path';
 import * as fs from 'somes/fs';
@@ -193,5 +192,3 @@ export default class File extends HttpService {
 	}
 	
 }
-
-service.set('File', File);

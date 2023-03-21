@@ -28,8 +28,8 @@
  * 
  * ***** END LICENSE BLOCK ***** */
 
-import './console';
-import './file';
+import Console from './console';
+import File from './file';
 import keys from 'somes/keys';
 import {ServerIMPL} from 'somes/server';
 import * as remote_log from './remote_log';
@@ -48,6 +48,10 @@ export default function start_server(options?: Dict) {
 	remote_log.set_remote_log_address(opts.remote);
 
 	var ser = new ServerIMPL( config.server );
+
+	ser.setService('File', File);
+	ser.setService('Console', Console);
+
 	ser.start();
 
 	setTimeout(function() {

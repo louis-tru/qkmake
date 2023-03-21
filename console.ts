@@ -28,7 +28,6 @@
  * 
  * ***** END LICENSE BLOCK ***** */
 
-import service from 'somes/service';
 import * as remote_log from './remote_log';
 import {HttpService} from 'somes/http_service';
 
@@ -50,5 +49,3 @@ export default class Console extends HttpService {
 	}
 
 }
-
-service.set('Console', Console);
