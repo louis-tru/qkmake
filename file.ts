@@ -42,9 +42,10 @@ function resolveLocal(...args: string[]) {
 export default class File extends HttpService {
 
 	async onAction(info: any) {
-		var log = 'Request: ' + this.url;
+		let log = 'Request: ' + this.url;
 		console.log(log);
 		remote_log.remote_log_print(log);
+
 		if ( /.+\.(mdown|md)/i.test(this.pathname) ) {
 			return this.marked({pathname:this.pathname});
 		}
@@ -58,13 +59,12 @@ export default class File extends HttpService {
 	}
 
 	marked_assets({pathname}: {pathname:string}) {
-		// console.log('marked_assets', pathname);
 		this.returnFile(resolveLocal(__dirname, 'marked/assets', pathname));
 	}
 
 	marked({pathname}: {pathname:string}) {
-		var self = this;
-		var filename = this.server.root + '/' + pathname;
+		let self = this;
+		let filename = this.server.root[0] + '/' + pathname;
 
 		return new Promise<void>((ok)=>{
 

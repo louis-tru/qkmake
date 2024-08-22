@@ -3,10 +3,10 @@ server
 	port 				1026
 	autoIndex 	true
 	#gzip				false
-	#agzip				false
+	#agzip			false
 	#printLog	 	true
 	defaults		index.html index.htm default.html
-	maxFileSize 				1073741824 # 1024 * 1024 * 1024
+	maxFileSize 			1073741824 # 1024 * 1024 * 1024
 	maxFormDataSize		52428800 # 50 * 1024 * 1024
 	maxUploadFileSize 	52428800 # 50 * 1024 * 1024
 	fileCacheTime				0

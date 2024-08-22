@@ -28,10 +28,11 @@
  * 
  * ***** END LICENSE BLOCK ***** */
 
+import 'somes/_util';
 import Console from './console';
 import File from './file';
 import keys from 'somes/keys';
-import {ServerIMPL} from 'somes/server';
+import {ServerImpl} from 'somes/server';
 import * as remote_log from './remote_log';
 import {getLocalNetworkHost} from 'somes/network_host';
 
@@ -39,27 +40,35 @@ process.on('unhandledRejection', (err, promise) => {
 	throw err;
 });
 
-export default function start_server(options?: Dict) {
-	var opts: Dict = options || {};
-	var config = keys.parseFile(__dirname + '/config.keys');
-	if ( typeof opts.port == 'number' ) {
-		config.server.port = opts.port;
-	}
-	remote_log.set_remote_log_address(opts.remote);
+export default function start_server(options?: {
+	remoteLog?: string,
+	server?: {
+		port?: number,
+		router?: {match:string, service?: string, action?: string}[],
+	},
+}) {
+	let opts = options || {};
+	let config = keys.parseFile(__dirname + '/config.keys');
 
-	var ser = new ServerIMPL( config.server );
+	if (opts.remoteLog) {
+		remote_log.set_remote_log_address(opts.remoteLog);
+	}
+	if (opts.server?.router) {
+		opts.server.router.push(...config.server.router);
+	}
+
+	let ser = new ServerImpl({ ...config.server, ...opts.server});
 
 	ser.setService('File', File);
 	ser.setService('Console', Console);
 
-	ser.start();
-
-	setTimeout(function() {
+	ser.start().then(e=>{
 		console.log( 'start web server:' );
+		//console.log('    http://' + ser.host + ':' + ser.port + '/');
 		getLocalNetworkHost().forEach(function(address) {
 			console.log('    http://' + address + ':' + ser.port + '/');
 		});
-	}, 200);
+	});
 
 	return ser;
 }
