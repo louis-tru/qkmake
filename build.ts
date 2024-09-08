@@ -28,13 +28,13 @@
  * 
  * ***** END LICENSE BLOCK ***** */
 
-import util from 'somes';
-import * as fs from 'somes/fs';
+import util from 'suark';
+import * as fs from 'suark/fs';
 import * as child_process from 'child_process';
-import keys from 'somes/keys';
-import path from 'somes/path';
+import keys from 'suark/keys';
+import path from 'suark/path';
 import paths from './paths';
-import { exec } from 'somes/syscall';
+import { exec } from 'suark/syscall';
 
 const uglify = require('./uglify');
 
@@ -56,7 +56,7 @@ new Application({ multisample: 4 }).start(
 
 const init_code2 = `
 
-// import utils from 'somes';
+// import utils from 'suark';
 
 console.log('When the package has only one file, TSC cannot be compiled. This should be a bug of TSC');
 
@@ -169,7 +169,7 @@ function parse_json_file(filename: string, strict?: boolean) {
 		} else {
 			return eval('(\n' + str + '\n)');
 		}
-	} catch (err) {
+	} catch (err: any) {
 		err.message = filename + ': ' + err.message;
 		throw err;
 	}

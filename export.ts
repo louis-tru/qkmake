@@ -28,13 +28,13 @@
  * 
  * ***** END LICENSE BLOCK ***** */
 
-import util from 'somes/util';
+import util from 'suark/util';
 import paths from './paths';
-import * as fs from 'somes/fs';
-import path from 'somes/path';
-import keys from 'somes/keys';
+import * as fs from 'suark/fs';
+import path from 'suark/path';
+import keys from 'suark/keys';
 import QuarkBuild, {PackageJson,native_source,native_header} from './build';
-import { getLocalNetworkHost } from 'somes/network_host';
+import { getLocalNetworkHost } from 'suark/network_host';
 import * as child_process from 'child_process';
 
 const isWindows = process.platform == 'win32';
@@ -47,7 +47,7 @@ function parse_json_file(filename: string, strict?: boolean) {
 		} else {
 			return eval('(\n' + str + '\n)');
 		}
-	} catch (err) {
+	} catch (err: any) {
 		err.message = filename + ': ' + err.message;
 		throw err;
 	}

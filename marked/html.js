@@ -28,7 +28,7 @@
  * 
  * ***** END LICENSE BLOCK ***** */
 
-import * as fs from 'somes/fs';
+import * as fs from 'suark/fs';
 import * as marked from 'marked';
 var renderer = new marked.Renderer();
 

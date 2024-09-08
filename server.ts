@@ -28,13 +28,13 @@
  * 
  * ***** END LICENSE BLOCK ***** */
 
-import 'somes/_util';
+import 'suark/_util';
 import Console from './console';
 import File from './file';
-import keys from 'somes/keys';
-import {ServerImpl} from 'somes/server';
+import keys from 'suark/keys';
+import {ServerImpl} from 'suark/server';
 import * as remote_log from './remote_log';
-import {getLocalNetworkHost} from 'somes/network_host';
+import {getLocalNetworkHost} from 'suark/network_host';
 
 process.on('unhandledRejection', (err, promise) => {
 	throw err;
@@ -62,7 +62,7 @@ export default function start_server(options?: {
 	ser.setService('File', File);
 	ser.setService('Console', Console);
 
-	ser.start().then(e=>{
+	ser.start().then(()=>{
 		console.log( 'start web server:' );
 		//console.log('    http://' + ser.host + ':' + ser.port + '/');
 		getLocalNetworkHost().forEach(function(address) {
