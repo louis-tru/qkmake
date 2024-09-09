@@ -28,13 +28,13 @@
  * 
  * ***** END LICENSE BLOCK ***** */
 
-import 'suark/_util';
+import 'encark/_util';
 import Console from './console';
 import File from './file';
-import keys from 'suark/keys';
-import {ServerImpl} from 'suark/server';
+import keys from 'encark/keys';
+import {ServerImpl} from 'encark/server';
 import * as remote_log from './remote_log';
-import {getLocalNetworkHost} from 'suark/network_host';
+import {getLocalNetworkHost} from 'encark/network_host';
 
 process.on('unhandledRejection', (err, promise) => {
 	throw err;

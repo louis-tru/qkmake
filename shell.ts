@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 
-import util from 'suark';
-import fs = require('suark/fs');
+import util from 'encark';
+import fs = require('encark/fs');
 import QuarkBuild from './build';
 import QuarkExport from './export';
 import server from './server';
-import * as argument from 'suark/arguments';
+import * as argument from 'encark/arguments';
 
 const args = process.argv.slice(2);
 const cmd = args.shift();

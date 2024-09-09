@@ -28,13 +28,13 @@
  * 
  * ***** END LICENSE BLOCK ***** */
 
-import util from 'suark';
-import * as fs from 'suark/fs';
+import util from 'encark';
+import * as fs from 'encark/fs';
 import * as child_process from 'child_process';
-import keys from 'suark/keys';
-import path from 'suark/path';
+import keys from 'encark/keys';
+import path from 'encark/path';
 import paths from './paths';
-import { exec } from 'suark/syscall';
+import { exec } from 'encark/syscall';
 
 const uglify = require('./uglify');
 
@@ -56,7 +56,7 @@ new Application({ multisample: 4 }).start(
 
 const init_code2 = `
 
-// import utils from 'suark';
+// import utils from 'encark';
 
 console.log('When the package has only one file, TSC cannot be compiled. This should be a bug of TSC');
 

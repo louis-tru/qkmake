@@ -39,7 +39,7 @@
 	"dependencies": {
 		"marked": "~0.3.6",
 		"uglify-es": "~3.0.28",
-		"suark": "~0.1.0",
+		"encark": "~0.1.0",
 		"typescript": "~5.4.5"
 	},
 	"devDependencies": {

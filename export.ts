@@ -28,13 +28,13 @@
  * 
  * ***** END LICENSE BLOCK ***** */
 
-import util from 'suark/util';
+import util from 'encark/util';
 import paths from './paths';
-import * as fs from 'suark/fs';
-import path from 'suark/path';
-import keys from 'suark/keys';
+import * as fs from 'encark/fs';
+import path from 'encark/path';
+import keys from 'encark/keys';
 import QuarkBuild, {PackageJson,native_source,native_header} from './build';
-import { getLocalNetworkHost } from 'suark/network_host';
+import { getLocalNetworkHost } from 'encark/network_host';
 import * as child_process from 'child_process';
 
 const isWindows = process.platform == 'win32';

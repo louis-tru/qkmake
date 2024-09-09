@@ -28,10 +28,10 @@
  * 
  * ***** END LICENSE BLOCK ***** */
 
-import util from 'suark';
-import { HttpService } from 'suark/http_service';
-import path from 'suark/path';
-import * as fs from 'suark/fs';
+import util from 'encark';
+import { HttpService } from 'encark/http_service';
+import path from 'encark/path';
+import * as fs from 'encark/fs';
 import * as remote_log from './remote_log';
 import {gen_html} from './marked/html';
 
