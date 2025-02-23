@@ -545,7 +545,7 @@ export default class QuarkExport {
 
 	private gen_project_file(project_name: string) {
 		var self = this;
-		var gyp_exec = __dirname + (isWindows ? '/gyp/gyp.bat' :  '/gyp/gyp');
+		var gyp_exec = __dirname + (isWindows ? '/gyp-next/gyp.bat' :  '/gyp-next/gyp');
 
 		var os = self.os;
 		var source = self.source;
