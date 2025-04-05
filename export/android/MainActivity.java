@@ -43,7 +43,7 @@ public class MainActivity extends Activity {
 	}
 
 	@Override
-	protected String startCommand() {
+	protected String startupArgv() {
 		// if ( isDebugger() )
 		// return "ARGV_DEBUG";
 		// else
