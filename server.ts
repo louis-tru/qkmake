@@ -31,7 +31,7 @@
 import 'encark/_util';
 import Console from './console';
 import File from './file';
-import keys from 'encark/keys';
+import config from './config';
 import {ServerImpl} from 'encark/server';
 import * as remote_log from './remote_log';
 import {getLocalNetworkHost} from 'encark/network_host';
@@ -48,7 +48,6 @@ export default function start_server(options?: {
 	},
 }) {
 	let opts = options || {};
-	let config = keys.parseFile(__dirname + '/config.keys');
 
 	if (opts.remoteLog) {
 		remote_log.set_remote_log_address(opts.remoteLog);

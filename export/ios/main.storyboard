@@ -9,9 +9,9 @@
 	useAutolayout="YES" 
 	useTraitCollections="YES">
 	
-    <dependencies>
-        <deployment identifier="iOS"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="10085"/>
-    </dependencies>
-    <scenes/>
+	<dependencies>
+		<deployment identifier="iOS"/>
+		<plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="10085"/>
+	</dependencies>
+	<scenes/>
 </document>

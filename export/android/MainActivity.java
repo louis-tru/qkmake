@@ -35,7 +35,11 @@ import android.os.Bundle;
 
 public class MainActivity extends Activity {
 
-	private static final String LIBRARY = "quark-js";
+	private static final String LIBRARY = "quark";
+
+	static {
+		System.loadLibrary(LIBRARY);
+	}
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -44,14 +48,10 @@ public class MainActivity extends Activity {
 
 	@Override
 	protected String startupArgv() {
-		// if ( isDebugger() )
-		// return "ARGV_DEBUG";
-		// else
-		return "ARGV_RELEASE";
+		if ( isDebugger() )
+			return ARGV_DEBUG;
+		else
+			return ARGV_RELEASE;
 	}
 
-	static {
-		System.loadLibrary(LIBRARY);
-	}
-	
 }
