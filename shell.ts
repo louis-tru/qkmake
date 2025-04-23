@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 
-import util from 'encark';
-import fs = require('encark/fs');
+import util from 'qktool';
+import fs = require('qktool/fs');
 import Build from './build';
 import Export from './export';
 import server from './server';
-import * as argument from 'encark/arguments';
+import * as argument from 'qktool/arguments';
 
 const args = process.argv.slice(2);
 const cmd = args.shift();

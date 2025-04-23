@@ -29,7 +29,7 @@
  * ***** END LICENSE BLOCK ***** */
 
 import * as http from 'http';
-import path, {URL} from 'encark/path';
+import path, {URL} from 'qktool/path';
 import * as querystring from 'querystring';
 var remote_log_uri: URL | null = null;
 

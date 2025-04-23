@@ -28,13 +28,13 @@
  * 
  * ***** END LICENSE BLOCK ***** */
 
-import 'encark/_util';
+import 'qktool/_util';
 import Console from './console';
 import File from './file';
 import config from './config';
-import {ServerImpl} from 'encark/server';
+import {ServerImpl} from 'qktool/server';
 import * as remote_log from './remote_log';
-import {getLocalNetworkHost} from 'encark/network_host';
+import {getLocalNetworkHost} from 'qktool/network_host';
 
 process.on('unhandledRejection', (err, promise) => {
 	throw err;

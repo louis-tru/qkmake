@@ -28,15 +28,16 @@
  * 
  * ***** END LICENSE BLOCK ***** */
 
-import util from 'encark/util';
+import util from 'qktool/util';
 import paths from './paths';
-import * as fs from 'encark/fs';
-import path from 'encark/path';
+import * as fs from 'qktool/fs';
+import path from 'qktool/path';
+import {syscall} from 'qktool/syscall';
 import Build, {
 	PackageJson,native_source,
 	native_header,parse_json_file, resolveLocal, saerchModules
 } from './build';
-import { getLocalNetworkHost } from 'encark/network_host';
+import { getLocalNetworkHost } from 'qktool/network_host';
 import * as child_process from 'child_process';
 
 const host_os = process.platform == 'darwin' ? 'mac': process.platform;
@@ -160,13 +161,17 @@ class Package {
 		}
 
 		if (is_app) {
+			let skip_resources = [
+				'package-lock.json',
+			];
 			for (let pkg of deps) {
 				self.includes.push(pkg.gypi_path);
 				self.dependencies_recursion.push(pkg.outputName);
 			}
 			for (let file of fs.readdirSync(`${self.host.output}/small`)) {
 				if (path.basename(file).indexOf('run.') != 0) { // skip run.* files
-					self.bundle_resources.push(`small/${file}`);
+					if (skip_resources.indexOf(file) == -1)
+						self.bundle_resources.push(`small/${file}`);
 				}
 			}
 			self.includes.splice(0, Infinity, ...filter_repeat(self.includes));
@@ -208,12 +213,21 @@ class Package {
 		}
 
 		let is_include_dirs = false;
+		let skip_source = [
+			'out',
+			'Project',
+			saerchModules,
+			'package-lock.json',
+			`${self.json.name}.gyp`
+		];
 
 		// add source
 		fs.listSync(source, true, function(stat, pathname) {
 			let name = stat.name;
 			if (name[0] == '.')
 				return true; // cancel each
+			if (skip_source.indexOf(name) != -1)
+				return true;
 			if ( stat.isFile() ) {
 				let extname = path.extname(name).toLowerCase();
 				if (native_source.indexOf(extname) != -1) {
@@ -232,7 +246,7 @@ class Package {
 				if (name == saerchModules) {
 					let dirname = source + '/' + pathname;
 					fs.listSync(dirname, function(stat, pathname) {
-						if (pathname && stat.isDirectory())
+						if (pathname && stat.isDirectory() && stat.name != '@types')
 							host.add_module(dirname + '/' + stat.name, false, true);
 					});
 					return true; // cancel each children
@@ -271,7 +285,7 @@ class Package {
 			reg = /(\<key\>CFBundleShortVersionString\<\/key\>\n\r?\s*\<string\>)([^\<]+)(\<\/string\>)/;
 			if (version) str = str.replace(reg, function(a,b,c,d) { return b + version + d });
 
-			str = str.replace('[Storyboard]', `$${name}.storyboard`);
+			str = str.replace('[Storyboard]', `${name}.storyboard`);
 			fs.writeFileSync( plist, str );
 			// .storyboard
 			fs.cp_sync(`${template}main.storyboard`, `${out}/${name}.storyboard`, { replace: false } );
@@ -462,7 +476,7 @@ export default class Export {
 
 	private gen_item(proj_name: string) {
 		let self = this;
-		let gyp_exec = __dirname + (isWindows ? '/gyp-next/gyp.bat' :  '/gyp-next/gyp');
+		let gyp_exec = __dirname + (isWindows ? '/gyp.bat' : '/gyp.sh');
 
 		let os = self.os;
 		let source = self.source;
@@ -503,20 +517,18 @@ export default class Export {
 
 		// console.log('paths.includes_gypi', paths.includes_gypi);
 
-		let shell = `\
-			${gyp_exec} \
-			-f ${style} \
-			--generator-output="${gen_out}" \
-			-Goutput_dir="${path.relative(source, out)}" \
-			-Gstandalone ${include_gypi} \
-			${proj_name}.gyp \
-			--depth=. \
-		`;
+		let shell =
+			`${gyp_exec} ` +
+			`-f ${style} --generator-output="${gen_out}" ` +
+			`-Goutput_dir="${path.relative(source, out)}" ` +
+			`-Gstandalone ${include_gypi} ` +
+			`${proj_name}.gyp ` +
+			`--depth=. `
+		;
 
-		let buf = child_process.execSync(shell);
-		if ( buf.length ) {
-			console.log(buf.toString());
-		}
+		var log = syscall(shell);
+		console.error(log.stderr.join('\n'));
+		console.log(log.stdout.join('\n'));
 
 		return proj_path;
 	}
@@ -560,46 +572,40 @@ export default class Export {
 		let out = self.gen_item(proj_name); // gen platform project
 		// fs.removerSync(gyp_file); // write gyp file
 
-		console.log(`export ${self.os} complete`);
-
 		return out;
 	}
 
 	private gen_android_studio() {
 		let self = this;
 		let proj_out = self.proj_out;
-		let use_ndk = false;
 		let out = this.gen();
 		let str: string;
+		let pkg = this.package;
+		let name = pkg.outputName;
+		let app_templ = `${__dirname}/export/android/app_template`;
+		let proj_templ = `${__dirname}/export/android/proj_template`;
 
 		// android并不完全依赖`gyp`, 还需生成 Android project
 		{
 			let output = self.output;
-			let pkg = this.package;
-			let name = pkg.outputName;
 			let id = (pkg.json.id || 'org.quark.' + name).replace(/-/gm, '_');
 			let app_name = pkg.json.app || name;
 			let version = pkg.json.version;
 			let java_pkg = id.replace(/\./mg, '/');
 			let so_pkg = pkg.native ? name : 'quark';
-
-			// let proj_out = self.proj_out;
 			let app = `${proj_out}/${name}`;
-			let AndroidManifest_xml = `${app}/src/main/AndroidManifest.xml`;
-			let strings_xml = `${app}/src/main/res/values/strings.xml`;
-			let MainActivity_java = `${app}/src/main/java/${java_pkg}/MainActivity.java`;
-			let build_gradle = `${app}/build.gradle`;
 
 			// copy android project template
-			fs.cp_sync(`${__dirname}/export/android/proj_template`, proj_out, { replace: false });
+			fs.cp_sync(proj_templ, proj_out, { replace: false });
 			// copy android app template
-			fs.cp_sync(`${__dirname}/export/android/app_template`, `${proj_out}/${name}`, { replace: false });
+			fs.cp_sync(app_templ, `${proj_out}/${name}`, { replace: false });
 	
 			fs.mkdirpSync(`${proj_out}/${name}/src/main/assets`);
 			fs.mkdirpSync(`${proj_out}/${name}/src/main/java`);
 
 			// MainActivity.java
 			let start_argv = pkg.get_start_argv();
+			let MainActivity_java = `${app}/src/main/java/${java_pkg}/MainActivity.java`;
 			fs.cp_sync(`${__dirname}/export/android/MainActivity.java`, MainActivity_java, { replace: false });
 			str = fs.readFileSync(MainActivity_java).toString('utf8');
 			str = str.replace(/\{id\}/gm, id);
@@ -609,28 +615,34 @@ export default class Export {
 			fs.writeFileSync(MainActivity_java, str);
 
 			// AndroidManifest.xml
+			let AndroidManifest_xml = `${app}/src/main/AndroidManifest.xml`;
 			str = fs.readFileSync(AndroidManifest_xml).toString('utf8');
 			str = str.replace(/package\=\"[^\"]+\"/mg, `package="${id}"`);
+			// <!meta-data android:name="android.app.lib_name" android:value="quark" />
 			str = str.replace(/android\:name\=\"android\.app\.lib_name\"\s+android\:value\=\"[^\"]+\"/, 
 												`android:name="android.app.lib_name" android:value="${so_pkg}"`);
 			fs.writeFileSync(AndroidManifest_xml, str);
 
 			// strings.xml
+			let strings_xml = `${app}/src/main/res/values/strings.xml`;
 			str = fs.readFileSync(strings_xml).toString('utf8');
 			str = str.replace(/name\=\"app_name\"\>[^\<]+\</, `name="app_name">${app_name}<`);
 			fs.writeFileSync(strings_xml, str);
 
 			// build.gradle
+			let build_gradle = `${app}/build.gradle.kts`;
 			str = fs.readFileSync(build_gradle).toString('utf8');
-			str = str.replace(/\{id\}/, id);
-			str = str.replace(/applicationId\s+('|")[^\'\"]+('|")/, `applicationId '${id}'`);
-			if (version) str = str.replace(/versionName\s+('|")[^\'\"]+('|")/, `versionName '${version}'`);
-			// fs.writeFileSync(build_gradle, str);
+			str = str.replace(/\{id\}/gm, id);
+			str = str.replace(/namespace\s*=\s*('|")[^\'\"]+('|")/, `namespace = "${id}"`);
+			str = str.replace(/applicationId\s*=\s*('|")[^\'\"]+('|")/, `applicationId = "${id}"`);
+			if (version) str = str.replace(/versionName\s*=\s*('|")[^\'\"]+('|")/, `versionName = "${version}"`);
 
-			str = str.replace(/^.*android\.externalNativeBuild\.cmake\.path\s*=\s*("|')[^"']*("|').*$/mg, '');
+			//android.externalNativeBuild.cmake.path = file("CMakeLists.txt")
+			str = str.replace(/^.*android\.externalNativeBuild\.cmake\..+$/mg, '');
 			if (pkg.native) {
 				let cmake = path.relative(`${self.proj_out}/${name}`, out[0]);
-				str += `\nandroid.externalNativeBuild.cmake.path = '${cmake}'`;
+				str += `\nandroid.externalNativeBuild.cmake.path = "${cmake}"`;
+				str += `\nandroid.externalNativeBuild.cmake.version = "3.22.1"`;
 			}
 			fs.writeFileSync(build_gradle, str);
 
@@ -645,32 +657,28 @@ export default class Export {
 					str = str.replace(reg0, '').replace(reg1, '');
 					fs.writeFileSync(cmake, str);
 				}
-				use_ndk = true;
 			}
 
-			// copy pkgrary bundle resources to android assets directory
-			let android_assets = `${proj_out}/${name}/src/main/assets`;
-			for (let res of pkg.bundle_resources) {
-				let basename = path.basename(res);
-				let source = path.relative(android_assets, output + '/' + res);
-				if (!fs.existsSync(output + '/' + res))
-					return;
-				let target = `${android_assets}/${basename}`;
-				try {
-					fs.unlinkSync(target);
-				} catch(e) {}
-				fs.symlinkSync(source, target); // create symlink
-			}
+			// Copy pkgrary bundle resources to android assets directory
+			// let android_assets = `${proj_out}/${name}/src/main/assets`;
+			// for (let res of pkg.bundle_resources) {
+			// 	let basename = path.basename(res);
+			// 	let source = path.relative(android_assets, output + '/' + res);
+			// 	if (!fs.existsSync(output + '/' + res))
+			// 		return;
+			// 	let target = `${android_assets}/${basename}`;
+			// 	try {
+			// 		fs.unlinkSync(target);
+			// 	} catch(e) {}
+			// 	fs.symlinkSync(source, target); // create symlink
+			// }
 		}
 
 		// write settings.gradle
-		fs.writeFileSync(proj_out + '/settings.gradle', `include ':${name}'`);
-		// set useDeprecatedNdk from gradle.properties
-		str = fs.readFileSync(proj_out + '/gradle.properties').toString('utf8');
-		str = str.replace(/useDeprecatedNdk\s*=\s*(false|true)/, function(){ 
-			return `useDeprecatedNdk=${use_ndk}` 
-		});
-		fs.writeFileSync(proj_out + '/gradle.properties', str);
+		str = fs.readFileSync(`${proj_templ}/settings.gradle.kts`, 'utf-8');
+		str += `\nrootProject.name = "${name}"`;
+		str += `\ninclude(":${name}")`;
+		fs.writeFileSync(`${proj_out}/settings.gradle`, str);
 
 		try {
 			if (host_os == 'mac') {
@@ -716,7 +724,7 @@ export default class Export {
 		// copy bundle resources and includes and librarys
 		self.bundle_resources.push(...paths.bundle_resources.map(copy_to_usr));
 
-		self.package = self.add_module(self.output, true);
+		self.package = self.add_module(self.source, true);
 
 		if (os == 'android') {
 			self.gen_android_studio();

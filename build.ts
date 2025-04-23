@@ -28,13 +28,13 @@
  * 
  * ***** END LICENSE BLOCK ***** */
 
-import util from 'encark';
-import * as fs from 'encark/fs';
+import util from 'qktool';
+import * as fs from 'qktool/fs';
 import * as child_process from 'child_process';
-import keys from 'encark/keys';
-import path from 'encark/path';
+import keys from 'qktool/keys';
+import path from 'qktool/path';
 import paths from './paths';
-import { exec } from 'encark/syscall';
+import { exec } from 'qktool/syscall';
 const uglify = require('./uglify');
 
 export const saerchModules = 'node_modules';
@@ -45,18 +45,18 @@ const base64_chars =
 const init_code = `
 import { Application, Window, _CVD } from 'quark';
 
-const app new Application();
+const app = new Application();
 
 const win = new Window().activate().render(
 	<box align="center" backgroundColor="#f00">
 		<text value="Hello world" />
 	</box>
-
+);
 `;
 
 const init_code2 = `
 
-// import utils from 'encark';
+// import utils from 'qktool';
 
 console.log('When the package has only one file, TSC cannot be compiled. This should be a bug of TSC');
 
@@ -304,15 +304,15 @@ class Package {
 		console.log(tag, this._output_name + '/' + pathname, desc || '');
 	}
 
-	constructor(host: Build, source: string, outputbase: string,
+	constructor(host: Build, source: string, output: string,
 		outputName: string, json: PkgJson, skipInstall: number)
 	{
 		this._host = host;
 		this._source = source;
 		this.json = json;
 		this._output_name  = outputName;
-		this._target_small = resolveLocal(host.target_small, outputbase, outputName);
-		this._target_all   = resolveLocal(host.target_all, outputbase, outputName);
+		this._target_small = resolveLocal(host.target_small, output);
+		this._target_all   = resolveLocal(host.target_all, output);
 		this._skip_file    = this.get_skip_files(this.json, outputName);
 		this._detach_file  = this.get_detach_files(this.json, outputName);
 		this._skipInstall  = skipInstall;
@@ -337,6 +337,7 @@ class Package {
 		rev.push('tsconfig.json');
 		rev.push('binding.gyp');
 		rev.push('versions.json');
+		rev.push('package-lock.json');
 		rev.push('out');
 		rev.push('Project');
 
@@ -465,7 +466,7 @@ class Package {
 		hash.update_str(content);
 		self._versions.pkgzFiles[pathname] = hash.digest(); // 记录文件 hash
 
-		if (self._skipInstall) {
+		if (!self._skipInstall) {
 			fs.cp_sync(target_all, target_small);
 		}
 	}
@@ -566,6 +567,7 @@ class Package {
 
 		if (basename == saerchModules) {
 			for (let stat of fs.listSync(source)) {
+				if (stat.name == '@types') continue;
 				let pkg_path = source + '/' + stat.name;
 				if (stat.isDirectory() && fs.existsSync( pkg_path + '/package.json')) {
 					let isRoot = self === self._host.package && pathname == saerchModules;
@@ -575,7 +577,8 @@ class Package {
 					if (!self._host.package.modules[outname]) {
 						// skipInstall value is inherit from parent ??
 						let skipInstall = self._skipInstall == 2 ? 2: (json.skipInstall || 0);
-						let pkg = new Package(self._host, pkg_path, saerchModules, outname, json, skipInstall);
+						let pkg = new Package(self._host, pkg_path,
+								`${saerchModules}/${outname}`, outname, json, skipInstall);
 						pkg.build();
 						self._host.package.modules[outname] = pkg;
 					}
@@ -595,13 +598,15 @@ class Package {
 		} else {
 			for (var stat of fs.listSync(source)) {
 				if (stat.name[0] != '.' || !self._host.ignore_hide) {
-					var basename = stat.name;
-					let path = pathname ? pathname + '/' + basename : basename; 
-					if ( stat.isFile() ) {
-						self.build_file(path);
-					} else if ( stat.isDirectory() ) {
-						self.build_each_pkg_dir(path, basename);
-					}
+					if (['Project','out','package-lock.json','tsconfig.json'].indexOf(stat.name) == -1) {
+						var basename = stat.name;
+						let path = pathname ? pathname + '/' + basename : basename; 
+						if ( stat.isFile() ) {
+							self.build_file(path);
+						} else if ( stat.isDirectory() ) {
+							self.build_each_pkg_dir(path, basename);
+						}
+					} // if (['package-lock.json
 				}
 			}
 		}
@@ -653,9 +658,9 @@ export default class Build {
 		util.assert(!/^https?:\/\//i.test(source),
 			`Source path error that is cannot be HTTP path ${source}`);
 
-		this.source           = resolveLocal(source);
-		this.target_small     = resolveLocal(target, 'small');
-		this.target_all       = resolveLocal(target, 'all');
+		this.source        = resolveLocal(source);
+		this.target_small  = resolveLocal(target, 'small');
+		this.target_all    = resolveLocal(target, 'all');
 
 		util.assert(fs.existsSync(this.source), `Build source does not exist ,${this.source}`);
 		util.assert(fs.statSync(this.source).isDirectory());
@@ -719,7 +724,8 @@ export default class Build {
 
 		pkg.json.modules = {};
 		self.genSaerchModules(pkg, pkg.json.modules);
-		fs.writeFileSync(this.target_all + '/package.json', JSON.stringify(pkg.json, null, 2)); // rewrite package.json
+		// rewrite package.json
+		fs.writeFileSync(this.target_all + '/package.json', JSON.stringify(pkg.json, null, 2));
 	}
 
 	private genSaerchModules(pkg: Package, outModules: Dict<Dict<PackageJson>>) {

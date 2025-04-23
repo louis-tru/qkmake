@@ -13,7 +13,7 @@
 		"qkmake": "shell.js"
 	},
 	"scripts": {
-		"cp": "mkdir -p out/qkmake && cp -rf LICENSE *.keys *.md marked export package.json out/qkmake && if [ ! -d out/qkmake/gyp-next ]; then ln -s ../../gyp-next out/qkmake; fi ",
+		"cp": "mkdir -p out/qkmake && cp -rf LICENSE gyp.* *.md marked export package.json out/qkmake && if [ ! -d out/qkmake/gyp-next ]; then ln -s ../../gyp-next out/qkmake; fi ",
 		"build": "npm run cp && tsc"
 	},
 	"keywords": [
@@ -39,7 +39,7 @@
 	"dependencies": {
 		"marked": "~0.3.6",
 		"uglify-es": "~3.0.28",
-		"encark": "~0.1.0",
+		"qktool": "file:~/Project/my/quark/libs/qktool/out/qktool",
 		"typescript": "~5.4.5"
 	},
 	"devDependencies": {

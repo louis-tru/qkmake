@@ -36,6 +36,7 @@ using namespace qk;
 
 Qk_Main() {
 #if DEBUG
+	//return "http://192.168.2.200:1026/ --inspect-brk=0.0.0.0:9229";
 	return js::Start(ARGV_DEBUG);
 #else
 	return js::Start(ARGV_RELEASE);
