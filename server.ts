@@ -62,8 +62,7 @@ export default function start_server(options?: {
 	ser.setService('Console', Console);
 
 	ser.start().then(()=>{
-		console.log( 'start web server:' );
-		//console.log('    http://' + ser.host + ':' + ser.port + '/');
+		console.log( 'Start web server:' );
 		getLocalNetworkHost().forEach(function(address) {
 			console.log('    http://' + address + ':' + ser.port + '/');
 		});

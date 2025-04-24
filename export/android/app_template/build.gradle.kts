@@ -15,15 +15,10 @@ android {
 		targetSdk = 35
 		versionCode = 1
 		versionName = "1.0"
-
 		testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-		externalNativeBuild {
-			cmake {
-				cppFlags += "-std=c++14"
-				abiFilters += setOf(
-					"x86_64", "arm64-v8a",
-				)
-			}
+		externalNativeBuild.cmake {
+			cppFlags += "-std=c++14"
+			abiFilters += setOf("x86_64", "arm64-v8a")
 		}
 	}
 

@@ -15,19 +15,21 @@
 	<uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
 	<uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
 
+	<!--android:theme="@android:style/Theme.NoTitleBar"-->
 	<application
-		android:requestLegacyExternalStorage="true"
 		android:allowBackup="true"
-		android:fullBackupContent="false"
+		android:requestLegacyExternalStorage="true"
+		android:dataExtractionRules="@xml/data_extraction_rules"
+		android:fullBackupContent="@xml/backup_rules"
+		android:label="@string/app_name"
 		android:icon="@mipmap/ic_launcher"
-		android:label="@string/app_name">
-
-		<!--android:theme="@style/Theme.Test"-->
+		android:roundIcon="@mipmap/ic_launcher_round"
+		android:supportsRtl="true"
+		android:theme="@style/Theme.Default"
+	>
 		<activity
 			android:name=".MainActivity"
 			android:exported="true"
-			android:label="@string/app_name"
-			android:theme="@android:style/Theme.NoTitleBar"
 		>
 			<intent-filter>
 				<action android:name="android.intent.action.MAIN" />

@@ -91,12 +91,11 @@ class Package {
 			let name = self.outputName;
 			let json = self.json;
 			let inspect = ' --inspect=0.0.0.0:9229';
-			let start_argv = '.';
 			let start_argv_debug = 'http://' + getLocalNetworkHost()[0] + ':1026/' + inspect;
 			if (json.skipInstall) {
 				console.warn( 'skipInstall params May lead to Application', name, ' to start incorrectly' );
 			}
-			return [start_argv, start_argv_debug];
+			return [start_argv_debug, `.${inspect}`, '.'];
 		}
 		return [] as string[];
 	}
@@ -268,15 +267,16 @@ class Package {
 		let id = self.json.id || 'org.quark.${PRODUCT_NAME:rfc1034identifier}';
 		let app_name = self.json.app || '${PRODUCT_NAME}';//'${EXECUTABLE_NAME}';
 		let version = self.json.version;
+		let main = 'main';
 
 		if (is_app) { // copy platfoem file
 			let out = host.proj_out;
-			let template = `${__dirname}/export/${host.os}/`;
-			let plist = `${out}/${name}.plist`;
+			let template = `${__dirname}/export/${host.os}`;
+			let plist = `${out}/${main}.plist`;
 			let str, reg;
 
 			// .plist
-			fs.cp_sync(`${template}main.plist`, plist, { replace: false });
+			fs.cp_sync(`${template}/main.plist`, plist, { replace: false });
 			str = fs.readFileSync(plist).toString('utf8');
 			reg = /(\<key\>CFBundleIdentifier\<\/key\>\n\r?\s*\<string\>)([^\<]+)(\<\/string\>)/;
 			str = str.replace(reg, function(a,b,c,d) { return b + id + d });
@@ -285,26 +285,27 @@ class Package {
 			reg = /(\<key\>CFBundleShortVersionString\<\/key\>\n\r?\s*\<string\>)([^\<]+)(\<\/string\>)/;
 			if (version) str = str.replace(reg, function(a,b,c,d) { return b + version + d });
 
-			str = str.replace('[Storyboard]', `${name}.storyboard`);
+			str = str.replace('[Storyboard]', `${main}.storyboard`);
 			fs.writeFileSync( plist, str );
 			// .storyboard
-			fs.cp_sync(`${template}main.storyboard`, `${out}/${name}.storyboard`, { replace: false } );
+			fs.cp_sync(`${template}/main.storyboard`, `${out}/${main}.storyboard`, { replace: false } );
 			// .xcassets
-			fs.cp_sync(`${template}Images.xcassets`, `${out}/${name}.xcassets`, { replace: false } );
+			fs.cp_sync(`${template}/Images.xcassets`, `${out}/Images.xcassets`, { replace: false } );
 	
-			self.bundle_resources.push('../Project/<(os)/' + name + '.storyboard');
-			self.bundle_resources.push('../Project/<(os)/' + name + '.xcassets');
+			self.bundle_resources.push(`../Project/<(os)/${main}.storyboard`);
+			self.bundle_resources.push('../Project/<(os)/Images.xcassets');
 
-			if (!fs.existsSync(`${out}/${name}.mm`)) { // main.mm
+			if (!fs.existsSync(`${out}/${main}.mm`)) { // main.mm
 				let start_argv = self.get_start_argv();
-				str = fs.readFileSync(template + 'main.mm').toString('utf8');
-				str = str.replace(/ARGV_DEBUG/, `"${start_argv[1]}"`);
-				str = str.replace(/ARGV_RELEASE/, `fs_resources("${start_argv[0]}")`);
-				fs.writeFileSync(`${out}/${name}.mm`, str);
+				str = fs.readFileSync(`${template}/main.mm`).toString('utf8');
+				str = str.replace(/ARGV_DEBUG/, `"${start_argv[0]}"`);
+				str = str.replace(/ARGV_DEBUG1/, `fs_resources("${start_argv[1]}")`);
+				str = str.replace(/ARGV_RELEASE/, `fs_resources("${start_argv[2]}")`);
+				fs.writeFileSync(`${out}/${main}.mm`, str);
 			}
-			sources.push(`../Project/<(os)/${name}.plist`);
-			sources.push(`../Project/<(os)/${name}.storyboard`);
-			sources.push(`../Project/<(os)/${name}.mm`);
+			sources.push(`../Project/<(os)/${main}.plist`);
+			// sources.push(`../Project/<(os)/${main}.storyboard`);
+			sources.push(`../Project/<(os)/${main}.mm`);
 		}
 
 		// create gypi json data
@@ -315,7 +316,7 @@ class Package {
 			'targets': [
 				{
 					'variables': is_app ? {
-						'XCODE_INFOPLIST_FILE': '$(SRCROOT)/Project/<(os)/' + name + '.plist'
+						'XCODE_INFOPLIST_FILE': '$(SRCROOT)/Project/<(os)/' + main + '.plist'
 					} : {},
 					'target_name': name,
 					'product_name': name,
@@ -352,7 +353,7 @@ class Package {
 		let os = host.os;
 		let out = host.proj_out;
 		let template = `${__dirname}/export/${os}/`;
-		let main = `${out}/${name}.cc`;
+		let main = `${out}/main.cc`;
 
 		// create gypi json data
 		let type = 'none';
@@ -371,18 +372,17 @@ class Package {
 				if (!fs.existsSync(main)) { // main.cc
 					let start_argv = self.get_start_argv();
 					str = fs.readFileSync(template + 'main.cc').toString('utf8');
-					str = str.replace(/ARGV_DEBUG/, `"${start_argv[1]}"`);
-					str = str.replace(/ARGV_RELEASE/, `fs_resources("${start_argv[0]}")`);
+					str = str.replace(/ARGV_DEBUG/, `"${start_argv[0]}"`);
+					str = str.replace(/ARGV_DEBUG1/, `fs_resources("${start_argv[1]}")`);
+					str = str.replace(/ARGV_RELEASE/, `fs_resources("${start_argv[2]}")`);
 					fs.writeFileSync(main, str);
 				}
 				sources.push(`../Project/linux/${name}.cc`);
-
-				fs.cp_sync(`${template}/Makefile`, `${out}/Makefile`, { replace: false });
+				fs.cp_sync(template, out, { replace: false });
 				str = fs.readFileSync(`${out}/Makefile`, 'utf-8');
-				str = str.replace(/^TARGET_NAME\s*\?=\s*/, `TARGET_NAME = ${name}`);
+				str = str.replace(/^TARGET_NAME\s*\??=.*/gm, `TARGET_NAME = ${name}`);
 				fs.writeFileSync(`${out}/Makefile`, str);
-				fs.mkdirpSync(`${host.output}/linux`);
-				fs.cp_sync(`${__dirname}/export/run.sh`, `${host.output}/linux`, { replace: false });
+				fs.cp_sync(`${__dirname}/export/run.sh`, `${out}/run.sh`, { replace: false });
 			}
 		} else if ( self._binding ) {
 			type = 'static_library';
@@ -442,7 +442,7 @@ export default class Export {
 			os == 'android' ||
 			os == 'linux' ||
 			os == 'mac' ||
-			os == 'ios', `Do not support ${os} os export`);
+			os == 'ios', `Do not support ${os} os export, Only OS for the ios android amc and linux`);
 		util.assert(fs.existsSync(`${source}/package.json`),
 			`Export source does not exist, file package.json`);
 
@@ -587,21 +587,20 @@ export default class Export {
 
 		// android并不完全依赖`gyp`, 还需生成 Android project
 		{
-			let output = self.output;
 			let id = (pkg.json.id || 'org.quark.' + name).replace(/-/gm, '_');
 			let app_name = pkg.json.app || name;
 			let version = pkg.json.version;
 			let java_pkg = id.replace(/\./mg, '/');
 			let so_pkg = pkg.native ? name : 'quark';
-			let app = `${proj_out}/${name}`;
+			let app = `${proj_out}/app`;
 
 			// copy android project template
 			fs.cp_sync(proj_templ, proj_out, { replace: false });
 			// copy android app template
-			fs.cp_sync(app_templ, `${proj_out}/${name}`, { replace: false });
+			fs.cp_sync(app_templ, app, { replace: false });
 	
-			fs.mkdirpSync(`${proj_out}/${name}/src/main/assets`);
-			fs.mkdirpSync(`${proj_out}/${name}/src/main/java`);
+			fs.mkdirpSync(`${app}/src/main/assets`);
+			fs.mkdirpSync(`${app}/src/main/java`);
 
 			// MainActivity.java
 			let start_argv = pkg.get_start_argv();
@@ -610,8 +609,9 @@ export default class Export {
 			str = fs.readFileSync(MainActivity_java).toString('utf8');
 			str = str.replace(/\{id\}/gm, id);
 			str = str.replace(/String\s+LIBRARY\s+=\s+"[^\"]+"/, `String LIBRARY = "${so_pkg}"`);
-			str = str.replace(/ARGV_DEBUG/, `"${start_argv[1]}"`);
-			str = str.replace(/ARGV_RELEASE/, `getPathInAssets("${start_argv[0]}")`);
+			str = str.replace(/ARGV_DEBUG/, `"${start_argv[0]}"`);
+			str = str.replace(/ARGV_DEBUG1/, `getPathInAssets("${start_argv[1]}")`);
+			str = str.replace(/ARGV_RELEASE/, `getPathInAssets("${start_argv[2]}")`);
 			fs.writeFileSync(MainActivity_java, str);
 
 			// AndroidManifest.xml
@@ -640,7 +640,7 @@ export default class Export {
 			//android.externalNativeBuild.cmake.path = file("CMakeLists.txt")
 			str = str.replace(/^.*android\.externalNativeBuild\.cmake\..+$/mg, '');
 			if (pkg.native) {
-				let cmake = path.relative(`${self.proj_out}/${name}`, out[0]);
+				let cmake = path.relative(`${app}`, out[0]);
 				str += `\nandroid.externalNativeBuild.cmake.path = "${cmake}"`;
 				str += `\nandroid.externalNativeBuild.cmake.version = "3.22.1"`;
 			}
@@ -660,7 +660,8 @@ export default class Export {
 			}
 
 			// Copy pkgrary bundle resources to android assets directory
-			// let android_assets = `${proj_out}/${name}/src/main/assets`;
+			// let output = self.output;
+			// let android_assets = `${app}/src/main/assets`;
 			// for (let res of pkg.bundle_resources) {
 			// 	let basename = path.basename(res);
 			// 	let source = path.relative(android_assets, output + '/' + res);
@@ -677,8 +678,8 @@ export default class Export {
 		// write settings.gradle
 		str = fs.readFileSync(`${proj_templ}/settings.gradle.kts`, 'utf-8');
 		str += `\nrootProject.name = "${name}"`;
-		str += `\ninclude(":${name}")`;
-		fs.writeFileSync(`${proj_out}/settings.gradle`, str);
+		str += `\ninclude(":app")`;
+		fs.writeFileSync(`${proj_out}/settings.gradle.kts`, str);
 
 		try {
 			if (host_os == 'mac') {
@@ -698,7 +699,7 @@ export default class Export {
 	}
 
 	private gen_linux() {
-		this.gen();
+		return this.gen();
 	}
 
 	async export() {
@@ -718,6 +719,9 @@ export default class Export {
 
 		if (paths.librarys[os]) {
 			paths.librarys[os].forEach(copy_to_usr);
+			for (let it of paths.librarys[os]) {
+				fs.chmod_r(`${self.output}/usr/${path.basename(it)}`, 0o755, ()=>{});
+			}
 		}
 		paths.includes.forEach(copy_to_usr);
 
@@ -729,10 +733,11 @@ export default class Export {
 		if (os == 'android') {
 			self.gen_android_studio();
 		} else if (os == 'linux') {
-			self.gen_linux();
+			let out = self.gen_linux();
 			if (host_os != 'linux') {
 				console.warn('Only compiling in Linux at Linux project');
 			}
+			child_process.execSync('open ' + this.proj_out); // open project
 		} else { // mac or ios
 			let out = self.gen();
 			try {

@@ -44,19 +44,19 @@ const base64_chars =
 
 const init_code = `
 import { Application, Window, _CVD } from 'quark';
+import 'quark/_ext';
 
 const app = new Application();
 
-const win = new Window().activate().render(
-	<box align="center" backgroundColor="#f00">
-		<text value="Hello world" />
-	</box>
+const win = new Window().render(
+	<free width="match" height="match">
+		<text value="Hello world" textSize={48} align="centerMiddle" />
+	</free>
 );
 `;
 
-const init_code2 = `
 
-// import utils from 'qktool';
+const init_code2 = `
 
 console.log('When the package has only one file, TSC cannot be compiled. This should be a bug of TSC');
 
@@ -406,8 +406,10 @@ class Package {
 
 		pkg_json.hash = hash.digest();
 
-		if (!self._skipInstall)
+		if (!self._skipInstall) {
 			fs.writeFileSync(target_small + '/package.json', JSON.stringify(pkg_json, null, 2)); // rewrite package.json
+			fs.writeFileSync(target_small + '/versions.json', JSON.stringify(versions, null, 2));
+		}
 		fs.writeFileSync(target_all + '/versions.json', JSON.stringify(versions, null, 2));
 		fs.writeFileSync(target_all + '/package.json', JSON.stringify(pkg_json, null, 2)); // rewrite package.json
 
@@ -767,7 +769,7 @@ export default class Build {
 			description: "",
 			dependencies: {}
 		};
-		init_tsconfig.compilerOptions.outDir = `out/${name}`;
+		init_tsconfig.compilerOptions.outDir = `out/tsc/${name}`;
 
 		fs.writeFileSync('package.json', JSON.stringify(json, null, 2));
 		fs.writeFileSync('index.tsx', init_code);

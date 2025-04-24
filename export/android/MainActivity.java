@@ -48,8 +48,8 @@ public class MainActivity extends Activity {
 
 	protected String startupArgv() {
 		if (isDebugger()) {
-			//return "http://192.168.2.200:1026/ --inspect-brk=0.0.0.0:9229";
-			return ARGV_DEBUG;
+			// return ARGV_DEBUG;
+			return ARGV_DEBUG1;
 		} else {
 			return ARGV_RELEASE;
 		}
