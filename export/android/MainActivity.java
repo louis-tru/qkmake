@@ -48,8 +48,8 @@ public class MainActivity extends Activity {
 
 	protected String startupArgv() {
 		if (isDebugger()) {
-			// return ARGV_DEBUG;
-			return ARGV_DEBUG1;
+			return ARGV_DEBUG;
+			// return ARGV_DEBUG1;
 		} else {
 			return ARGV_RELEASE;
 		}

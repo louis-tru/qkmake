@@ -36,8 +36,8 @@ using namespace qk;
 
 Qk_Main() {
 #if DEBUG
-	// return js::Start(ARGV_DEBUG);
-	return js::Start(ARGV_DEBUG1);
+	return js::Start(ARGV_DEBUG);
+	// return js::Start(ARGV_DEBUG1);
 #else
 	return js::Start(ARGV_RELEASE);
 #endif
