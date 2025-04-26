@@ -288,12 +288,15 @@ class Package {
 			str = str.replace('[Storyboard]', `${main}.storyboard`);
 			fs.writeFileSync( plist, str );
 			// .storyboard
-			fs.cp_sync(`${template}/main.storyboard`, `${out}/${main}.storyboard`, { replace: false } );
+			fs.cp_sync(`${template}/${main}.storyboard`, `${out}/${main}.storyboard`, { replace: false } );
 			// .xcassets
 			fs.cp_sync(`${template}/Images.xcassets`, `${out}/Images.xcassets`, { replace: false } );
+			// launchImage
+			fs.cp_sync(`${template}/launch/launch.png`, `${out}/launch/launch.png`, { replace: false } );
 	
 			self.bundle_resources.push(`../Project/<(os)/${main}.storyboard`);
 			self.bundle_resources.push('../Project/<(os)/Images.xcassets');
+			self.bundle_resources.push('../Project/<(os)/launch/launch.png');
 
 			if (!fs.existsSync(`${out}/${main}.mm`)) { // main.mm
 				let start_argv = self.get_start_argv();
@@ -304,7 +307,6 @@ class Package {
 				fs.writeFileSync(`${out}/${main}.mm`, str);
 			}
 			sources.push(`../Project/<(os)/${main}.plist`);
-			// sources.push(`../Project/<(os)/${main}.storyboard`);
 			sources.push(`../Project/<(os)/${main}.mm`);
 		}
 
@@ -333,7 +335,7 @@ class Package {
 						'INFOPLIST_FILE': '<(XCODE_INFOPLIST_FILE)',
 						'SKIP_INSTALL': 'NO',
 						'ASSETCATALOG_COMPILER_APPICON_NAME': 'AppIcon',
-						'ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME': 'LaunchImage',
+						// 'ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME': 'LaunchImage',
 						'PRODUCT_BUNDLE_IDENTIFIER': id,
 					}: {},
 				}

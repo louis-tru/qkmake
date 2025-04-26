@@ -122,17 +122,19 @@ const init_tsconfig = {
 		"jsx": "react",
 		"jsxFactory": "_CVD",
 		// "typeRoots" : ["../libs"],
-		// "types" : ["node", "lodash", "express"]
+		// "types" : ["node", "lodash", "express"],
+		"incremental": true,
+		"tsBuildInfoFile": "./out/tsbuildinfo"
 	},
 	"include": [
 		"**/*",
 	],
 	"exclude": [
 		"out",
-		"var",
 		".git",
 		".svn",
 		"_.js",
+		"Project",
 		saerchModules,
 	]
 };
@@ -233,6 +235,7 @@ export interface PackageJson extends Dict {
 	dependencies?: Dict<string>;
 	bin?: string;
 	hash?: string;
+	pkgzHash?: string;
 	id?: string;
 	app?: string;
 	detach?: string | string[];
@@ -281,6 +284,15 @@ class Hash {
 		while ( value >>= 6 );
 		return retValue;
 	}
+	digest64() {
+		var value = this.hash;
+		var retValue = '';
+		do {
+			retValue += base64_chars[value & 0x3F];
+		}
+		while ( (value >>= 6) > 0 );
+		return retValue;
+	}
 }
 
 class Package {
@@ -288,6 +300,7 @@ class Package {
 	private _source           = '';
 	private _target_small     = '';
 	private _target_all       = '';
+	private _target_types     = '';
 	private _versions         = { filesHash: {} as Dict<string>, pkgzFiles: {} as Dict<string>};
 	private _detach_file: string[] = [];
 	private _skip_file: string[] = [];
@@ -313,6 +326,7 @@ class Package {
 		this._output_name  = outputName;
 		this._target_small = resolveLocal(host.target_small, output);
 		this._target_all   = resolveLocal(host.target_all, output);
+		this._target_types = resolveLocal(host.target_types, output);
 		this._skip_file    = this.get_skip_files(this.json, outputName);
 		this._detach_file  = this.get_detach_files(this.json, outputName);
 		this._skipInstall  = skipInstall;
@@ -344,7 +358,7 @@ class Package {
 		return rev;
 	}
 
-	// 获取分离文件列表
+	// Getting detach of files list
 	private get_detach_files(pkg_json: PkgJson, name: string) {
 		var rev: string[] = [];
 		
@@ -388,39 +402,51 @@ class Package {
 
 		// build tsc
 		if (fs.existsSync(source + '/tsconfig.json')) {
-			self._tsconfig_outDir = resolveLocal(self._host.target_small, '..', 'tsc', self._output_name);
-			exec_cmd(`cd ${source} && tsc --outDir ${self._tsconfig_outDir}`);
+			self._tsconfig_outDir = this._target_all;
+			let tsconfig = { extends: './tsconfig.json', exclude: [saerchModules,'out','.git','.svn'] };
+			if (self === self._host.package) {
+				tsconfig.exclude.push('Project');
+			}
+			let json = parse_json_file(source + '/tsconfig.json');
+			let tsBuildInfoFile = json.compilerOptions && json.compilerOptions.tsBuildInfoFile;
+			fs.rm_r_sync(path.isAbsolute(tsBuildInfoFile) ?
+				tsBuildInfoFile: resolveLocal(source, tsBuildInfoFile));
+			fs.writeFileSync(`${source}/.tsconfig.json`, JSON.stringify(tsconfig, null, 2));
+			exec_cmd(`cd ${source} && ${__dirname}/node_modules/.bin/tsc --project .tsconfig.json \
+				--outDir ${self._tsconfig_outDir} --declarationDir ${this._target_types}`);
+			fs.unlinkSync(`${source}/.tsconfig.json`);
 		}
 
 		// each dir
 		self.build_each_pkg_dir('', '');
 
+		let pkg_files = ['versions.json'];
 		let versions = self._versions
 		let hash = new Hash();
+
 		for (let i in versions.pkgzFiles) {  // 计算 version code
+			pkg_files.push(`"${versions.pkgzFiles[i]}"`);
 			hash.update_str(versions.pkgzFiles[i]);
 		}
+		pkg_json.pkgzHash = hash.digest64();
+
 		for (let i in versions.filesHash) {
 			hash.update_str(versions.filesHash[i]);
 		}
+		pkg_json.hash = hash.digest64();
 
-		pkg_json.hash = hash.digest();
-
-		if (!self._skipInstall) {
+		if (!self._skipInstall) { // no skil
 			fs.writeFileSync(target_small + '/package.json', JSON.stringify(pkg_json, null, 2)); // rewrite package.json
 			fs.writeFileSync(target_small + '/versions.json', JSON.stringify(versions, null, 2));
 		}
 		fs.writeFileSync(target_all + '/versions.json', JSON.stringify(versions, null, 2));
 		fs.writeFileSync(target_all + '/package.json', JSON.stringify(pkg_json, null, 2)); // rewrite package.json
 
-		let pkg_files = ['versions.json'];
-		for (let e of Object.keys(versions.pkgzFiles)) {
-			pkg_files.push(`"${e}"`);
-		}
+		
 		new_zip(target_all, pkg_files, target_all + '/' + pkg_json.name + '.pkgz');
 	}
 
-	private copy_js(source: string, target_all: string) {
+	private copy_js(source: string, target: string) {
 		let self = this;
 		let data = read_file_text(source);
 
@@ -451,9 +477,10 @@ class Package {
 			data.hash = hash.digest();
 		}
 
-		fs.mkdirpSync( path.dirname(target_all) ); // 先创建目录
-
-		fs.writeFileSync(target_all, data.value, 'utf8');
+		if (source != target) {
+			fs.mkdirpSync(path.dirname(target)); // 先创建目录
+			fs.writeFileSync(target, data.value, 'utf8');
+		}
 
 		return data.hash;
 	}
@@ -505,8 +532,12 @@ class Package {
 			case '.js':
 				self.console_log('Out ', pathname);
 				if (self._tsconfig_outDir) {
-					if (fs.existsSync(self._tsconfig_outDir + '/' + pathname))
-						source = self._tsconfig_outDir + '/' + pathname;
+					let s = `${self._tsconfig_outDir}/${pathname}`;
+					if (fs.existsSync(s)) {
+						// Make sure is latest time else use raw source
+						if (fs.statSync(s).atime > fs.statSync(source).atime)
+							source = s;
+					}
 				}
 				hash = self.copy_js(source, target_all);
 				break;
@@ -514,13 +545,13 @@ class Package {
 			case '.tsx':
 			case '.jsx':
 				if (pathname.substring(-2 - extname.length, 2) == '.d') { // typescript define
-					self.console_log('Out ', pathname);
-					hash = copy_file(source, target_all);
-				} else if (self._tsconfig_outDir) {
-					pathname = pathname.substring(0,  pathname.length - extname.length) + '.js';
-					target_small = resolveLocal(self._target_small, pathname);
+					return; // no copy declaration file
+				}
+				else if (self._tsconfig_outDir) {
+					pathname = pathname.substring(0, pathname.length - extname.length) + '.js';
+					target_small = resolveLocal(self._target_small, pathname); // rename ts to js
 					target_all = resolveLocal(self._target_all, pathname);
-					hash = self.copy_js(self._tsconfig_outDir + '/' + pathname, target_all);
+					hash = self.copy_js(`${self._tsconfig_outDir}/${pathname}`, target_all);
 				} else {
 					self.console_log('Ignore', pathname, 'No tsconfig.json');
 					return;
@@ -528,17 +559,16 @@ class Package {
 				break;
 			case '.keys':
 				self.console_log('Out ', pathname);
+				let data = null;
 				var {hash,value} = read_file_text(source);
-				let keys_data = null;
-
 				try {
-					keys_data = keys.parse(value);
+					data = keys.parse(value);
 				} catch(err) {
 					console.error('Parse keys file error: ' + source);
 					throw err;
 				}
-				fs.mkdirpSync(path.dirname(target_all)); // 先创建目录
-				fs.writeFileSync(target_all, keys.stringify(keys_data), 'utf8');
+				fs.mkdirpSync(path.dirname(target_all)); // First create directory
+				fs.writeFileSync(target_all, keys.stringify(data), 'utf8');
 				break;
 			default:
 				self.console_log('Copy', pathname);
@@ -553,19 +583,13 @@ class Package {
 		if ( is_detach ) {
 			self._versions.filesHash[pathname] = hash;
 		} else {
-			self._versions.pkgzFiles[pathname] = hash; // 记录文件 hash
+			self._versions.pkgzFiles[pathname] = hash; // add hash to pkgz
 		}
 	}
 
 	private build_each_pkg_dir(pathname: string, basename: string) {
 		let self = this;
 		let source = resolveLocal(self._source, pathname);
-
-		if (self._tsconfig_outDir == source) { // skip ts out dir
-			if (self._tsconfig_outDir != self._source) { // no skip root source
-				return;
-			}
-		}
 
 		if (basename == saerchModules) {
 			for (let stat of fs.listSync(source)) {
@@ -625,10 +649,10 @@ class Package {
 		// copy to dest
 		fs.cp_sync(source, target_all, { ignore_hide: this._host.ignore_hide });
 
-		if ( fs.existsSync(`${source}/${name}.pkgz`) ) { // local 有.pkgz
+		if ( fs.existsSync(`${source}/${name}.pkgz`) ) { // there's local has the .pkgz file
 			unzip(`${source}/${name}.pkgz`, target_all); // unzip .pkgz
 		}
-		else { // 没有.pkgz文件
+		else { // no .pkgz file
 			let pkgzFiles = parse_json_file(`${source}/versions.json`).pkgzFiles;
 			let pkg_files = ['versions.json'];
 			for ( let i in pkgzFiles ) {
@@ -649,20 +673,25 @@ class Package {
 
 export default class Build {
 	readonly source: string;
+	readonly target: string;
 	readonly target_small: string;
 	readonly target_all: string;
+	readonly target_types: string;
 	readonly package: Package;
 
-	ignore_hide = true; // 忽略隐藏文件
-	minify = -1; // 缩小与混淆js代码，-1表示使用package.json定义
+	ignore_hide = true; // Ignore the hidden files
+	// Compress and obfuscate js code, -1 means use definition of package.json
+	minify = -1;
 
 	constructor(source: string, target: string) {
 		util.assert(!/^https?:\/\//i.test(source),
 			`Source path error that is cannot be HTTP path ${source}`);
 
 		this.source        = resolveLocal(source);
+		this.target        = target;
 		this.target_small  = resolveLocal(target, 'small');
 		this.target_all    = resolveLocal(target, 'all');
+		this.target_types  = resolveLocal(target, 'types');
 
 		util.assert(fs.existsSync(this.source), `Build source does not exist ,${this.source}`);
 		util.assert(fs.statSync(this.source).isDirectory());
@@ -689,7 +718,6 @@ export default class Build {
 		}
 
 		console.log(`Install dependencies ...`);
-
 		process.stdin.resume();
 
 		let r = await exec(`npm install --only=prod --ignore-scripts`, {
@@ -776,7 +804,8 @@ export default class Build {
 		fs.writeFileSync('test.ts', init_code2);
 		fs.writeFileSync('tsconfig.json', JSON.stringify(init_tsconfig, null, 2));
 		fs.writeFileSync(`.editorconfig`, init_editorconfig);
-		fs.writeFileSync(`.gitignore`, ['.vscode', saerchModules, 'out', 'Project', '*.gyp'].join('\n'));
+		fs.writeFileSync(`.gitignore`, ['.vscode', '*.DS_Store',
+			saerchModules, 'out', 'Project', '*.gyp', '.tsconfig.json'].join('\n'));
 	}
 
 }

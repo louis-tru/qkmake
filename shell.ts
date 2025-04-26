@@ -1,10 +1,9 @@
 #!/usr/bin/env node
 
-import util from 'qktool';
 import fs = require('qktool/fs');
 import Build from './build';
 import Export from './export';
-import server from './server';
+import {start} from './server';
 import * as argument from 'qktool/arguments';
 
 const args = process.argv.slice(2);
@@ -19,6 +18,7 @@ function tryClean() {
 	if (opts.clean) { // clean
 		fs.rm_r_sync(cwd + '/out/all');
 		fs.rm_r_sync(cwd + '/out/small');
+		fs.rm_r_sync(cwd + '/out/tsbuildinfo');
 	}
 }
 
@@ -61,11 +61,17 @@ else if (cmd == 'install') {
 	new Build(cwd, cwd + '/out').install_deps();
 }
 else if (cmd == 'start') {
-	tryClean();
-	if (['ios', 'android', 'mac', 'linux'].indexOf(args[0]) != -1) {
-		new Export(cwd, args[0]).export().catch(e=>console.error(e));
-	}
-	server(argument.options); // run wrb server
+	(async function() {
+		tryClean();
+		if (['ios', 'android', 'mac', 'linux'].indexOf(args[0]) != -1) {
+			await new Export(cwd, args[0]).export();
+		}
+		if (!fs.existsSync(`${cwd}/out/all/package.json`) ) {
+			await new Build(cwd, cwd + '/out').install_deps();
+		}
+		// run web server
+		await start(cwd, {server: { port: argument.options.port, root: `${cwd}` }});
+	})();
 }
 
 export default {};

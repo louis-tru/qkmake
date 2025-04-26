@@ -7,9 +7,9 @@ export default {
 		// agzip: false,
 		// printLog: true,
 		defaults: ['index.html', 'index.htm', 'default.html'],
-		maxFileSize: 1073741824, // # 1024 * 1024 * 1024
-		maxFormDataSize: 52428800, // # 50 * 1024 * 1024
-		maxUploadFileSize: 52428800, // # 50 * 1024 * 1024
+		maxFileSize: 1024 * 1024 * 1024,
+		maxFormDataSize: 50 * 1024 * 1024,
+		maxUploadFileSize: 50 * 1024 * 1024,
 		fileCacheTime: 0,
 		// expires: 0,
 		router: [
@@ -22,7 +22,7 @@ export default {
 			}, {
 				match: '/{pathname}',
 				service: 'File',
-				action: 'unknown',
+				action: 'siteFile',
 			}
 		],
 	},

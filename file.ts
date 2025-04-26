@@ -28,7 +28,6 @@
  * 
  * ***** END LICENSE BLOCK ***** */
 
-import util from 'qktool';
 import { HttpService } from 'qktool/http_service';
 import path from 'qktool/path';
 import * as fs from 'qktool/fs';
@@ -49,11 +48,11 @@ export default class File extends HttpService {
 		if ( /.+\.(mdown|md)/i.test(this.pathname) ) {
 			return this.marked({pathname:this.pathname});
 		}
-		else if ( /\/packages.json$/.test(this.pathname) ) {
-			return this.packages_json({pathname:this.pathname});
+		else if ( /\/package.json$/.test(this.pathname) ) {
+			return this.package_json({pathname:this.pathname});
 		}
 		else if ( /\/versions.json$/.test(this.pathname) ) {
-			return this.versions_json({ pathname:this.pathname });
+			return this.versions_json({pathname:this.pathname});
 		}
 		super.onAction(info);
 	}
@@ -84,9 +83,9 @@ export default class File extends HttpService {
 					return self.returnErrorStatus(403), ok();
 				}
 				
-				var mtime = stat.mtime;
-				var ims = self.request.headers['if-modified-since'];
-				var res = self.response;
+				let mtime = stat.mtime;
+				let ims = self.request.headers['if-modified-since'];
+				let res = self.response;
 	
 				self.setDefaultHeader();
 				res.setHeader('Last-Modified', mtime.toUTCString());
@@ -103,92 +102,60 @@ export default class File extends HttpService {
 						return self.returnErrorStatus(404), ok();
 					}
 					// template, title, text_md, no_index
-					var res = self.response;
-					var html = gen_html(data.toString('utf8')).html;
+					let res = self.response;
+					let html = gen_html(data.toString('utf8')).html;
 					res.writeHead(200);
 					res.end(html);
 					ok();
 				});
 	
 			});
-
 		});
 	}
 
-	packages_json({pathname}: {pathname:string}) {
-		var self = this;
-		var dir = resolveLocal(this.server.root[0], path.dirname(pathname));
-		var res = self.response;
-
-		if (fs.existsSync(dir + '/packages.json')) {
-			self.returnFile(dir + '/packages.json');
-		} 
-		else {
-			if ( fs.existsSync(dir) ) {
-				self.markReturnInvalid();
-
-				var pkgs: Dict = {};
-				(fs.listSync(dir) as fs.StatsDescribe[]).forEach(function(stat) {
-					if ( stat.isDirectory() ) {
-						var pkg = dir + '/' + stat.name + '/package.json';
-						if (fs.existsSync(pkg)) {
-							var config = JSON.parse(fs.readFileSync(pkg, 'utf8'));
-							pkgs[config.name] = config;
-						}
-					}
-				});
-				var data = JSON.stringify(pkgs, null, 2);
-				self.setDefaultHeader();
-				res.setHeader('Content-Type', 'application/json; charset=utf-8');
-				res.writeHead(200);
-				res.end(data);
-			} else {
-				this.returnErrorStatus(404);
-			}
+	package_json({pathname}: {pathname:string}) {
+		let root = this.server.root[0];
+		let [json_path] = ['out/all','']
+			.map(e=>resolveLocal(root, e, pathname))
+			.filter(fs.existsSync);
+		if (!json_path) {
+			return this.returnErrorStatus(404);
 		}
+		this.markCompleteResponse();
+		let res = this.response;
+		let json = JSON.parse(fs.readFileSync(json_path, 'utf8'));
+		json.hash = '';
+		json.pkgzHash = ''; // clear pkgz flag
+		let data = JSON.stringify(json, null, 2);
+		this.setNoCache();
+		this.setDefaultHeader();
+		res.setHeader('Content-Type', 'application/json; charset=utf-8');
+		res.writeHead(200);
+		res.end(data);
 	}
 
 	versions_json({pathname}: {pathname:string}) {
-		var self = this;
-		var dir = resolveLocal(this.server.root[0], path.dirname(pathname));
-		var res = self.response;
-
-		if (fs.existsSync(dir + '/versions.json')) {
-			self.returnFile(dir + '/versions.json');
+		let root = this.server.root[0];
+		let [json_path] = ['out/all']
+			.map(e=>resolveLocal(root, e, pathname))
+			.filter(fs.existsSync);
+		if (!json_path) {
+			return this.returnErrorStatus(404);
 		}
-		else {
-			var pkg = dir + '/package.json';
-			
-			if ( fs.existsSync(dir) && fs.existsSync(pkg) ) {
-				self.markReturnInvalid();
+		this.setNoCache();
+		this.returnFile(json_path);
+	}
 
-				var config = JSON.parse(fs.readFileSync(pkg, 'utf8'));
-				var versions: Dict = {};
-
-				dir = resolveLocal(dir, config.src || '');
-
-				fs.ls_sync(dir, true, function(stat, pathname) {
-					if (stat.name == '.git' || stat.name == '.svn')
-						return true; // cancel each children
-					var hash = util.hash(stat.mtime.valueOf() + '');
-					if ( stat.isFile() ) {
-						versions[pathname] = hash;
-					} else if (pathname) {
-						versions[pathname + '/packages.json'] = hash;
-					} else {
-						versions['packages.json'] = hash;
-					}
-				});
-
-				var data = JSON.stringify({ versions: versions }, null, 2);
-				self.setDefaultHeader();
-				res.setHeader('Content-Type', 'application/json; charset=utf-8');
-				res.writeHead(200);
-				res.end(data);
-			} else {
-				this.returnErrorStatus(404);
-			}
+	siteFile({pathname}: {pathname:string}) {
+		let root = this.server.root[0];
+		let [s] = ['out/all','']
+			.map(e=>resolveLocal(root, e, pathname))
+			.filter(fs.existsSync);
+		if (s && fs.statSync(s).isFile()) {
+			this.returnFile(s);
+		} else {
+			this.returnSiteFile(pathname);
 		}
 	}
-	
+
 }

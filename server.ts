@@ -32,21 +32,23 @@ import 'qktool/_util';
 import Console from './console';
 import File from './file';
 import config from './config';
-import {ServerImpl} from 'qktool/server';
+import {ServerImpl,Options} from 'qktool/server';
 import * as remote_log from './remote_log';
 import {getLocalNetworkHost} from 'qktool/network_host';
+import { saerchModules } from './build';
+import * as fs from 'fs';
+import * as ts from 'typescript';
+import path from 'qktool/path';
 
 process.on('unhandledRejection', (err, promise) => {
 	throw err;
 });
 
-export default function start_server(options?: {
-	remoteLog?: string,
-	server?: {
-		port?: number,
-		router?: {match:string, service?: string, action?: string}[],
-	},
-}) {
+interface Opt {
+	remoteLog?: string, server?: Partial<Options>
+};
+
+export default function start_server(options?: Opt) {
 	let opts = options || {};
 
 	if (opts.remoteLog) {
@@ -64,9 +66,52 @@ export default function start_server(options?: {
 	ser.start().then(()=>{
 		console.log( 'Start web server:' );
 		getLocalNetworkHost().forEach(function(address) {
-			console.log('    http://' + address + ':' + ser.port + '/');
+			console.log('  http://' + address + ':' + ser.port + '/');
 		});
 	});
 
 	return ser;
+}
+
+export async function start(runPoint: string, opts?: Opt) {
+	let src = path.fallbackPath(path.resolve(runPoint));
+	let ser = start_server(opts);
+	let tsconfig = {
+		extends: `./tsconfig.json`, 
+		exclude: [saerchModules,'Project','out','.git','.svn'],
+	};
+	fs.writeFileSync(`${src}/.tsconfig.json`, JSON.stringify(tsconfig, null, 2));
+
+	let sys = Object.create(ts.sys) as (typeof ts.sys);
+	let out_all = `${src}/out/all`;
+
+	sys.writeFile = function(pathname: string, data: string, writeByteOrderMark?: boolean) {
+		if (path.extname(pathname) == '.js') {
+			// TODO: Emit notification to debug clients
+			console.log('Changed:', pathname.substring(out_all.length));
+		}
+		ts.sys.writeFile(pathname, data, writeByteOrderMark);
+	}
+
+	let watchCompilerHost = ts.createWatchCompilerHost(
+		`${src}/.tsconfig.json`,
+		{
+			outDir: `${src}/out/all`,
+			declarationDir: `${src}/out/types`,
+		},
+		sys,
+		ts.createEmitAndSemanticDiagnosticsBuilderProgram,
+		(diagnostic) => {
+			if (diagnostic.file) {
+				console.log('Error: from', diagnostic.file!.fileName.substring(src.length));
+			}
+			console.log('  ', diagnostic.messageText);
+		},
+		(status) => {
+			if (status.category === ts.DiagnosticCategory.Message) {
+				// console.log('File changed:', status);
+			}
+		}
+	);
+	ts.createWatchProgram(watchCompilerHost);
 }
