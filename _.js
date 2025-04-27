@@ -13,29 +13,27 @@ if (process.argv[2] == 'build') {
 	fs.copySync('gyp.sh', 'out/qkmake/gyp.sh');
 	fs.copySync('gyp.bat', 'out/qkmake/gyp.bat');
 	fs.copySync('quark', 'out/qkmake/quark');
-	fs.copySync('quark.exe', 'out/qkmake/quark.exe');
+	fs.copySync('quark.bat', 'out/qkmake/quark.bat');
 	fs.chmodSync('quark', 0o755);
 	if (! fs.existsSync(`out/qkmake/gyp-next`)) {
 		fs.symlinkSync(`../../gyp-next`, `out/qkmake/gyp-next`)
 	}
 } else if (process.argv[2] == 'install') {
-	const fs = require('fs')
-	const host_os = process.platform == 'darwin' ? 'mac': process.platform;
-	const host_arch = process.arch;
-	const quark = host_os == 'win32' ? 'quark.exe': 'quark';
+	const fs = require('fs');
+	const platform = process.platform;
+	const host_os = platform == 'darwin' ? 'mac': platform == 'win32' ? 'windows': platform;
+	const host_arch = process.arch == 'x86_64' ? 'x64': process.arch;
+	const isWin = host_os == 'windows';
+	const quark = isWin ? 'quark.bat': 'quark';
 	const exec = `product/${host_os}/${host_arch}/${quark}`;
 	if (fs.existsSync(exec)) {
-		if (fs.existsSync(quark)) {
-			fs.unlinkSync(quark);
-		}
-		fs.symlinkSync(exec, quark);
-
-		if (host_os == 'win32') {
-			//
+		if (isWin) {
+			fs.writeFileSync(quark, `%~dp0product\\windows\\${host_arch}\\quark.exe %*`);
 		} else {
-			if (!fs.existsSync('/usr/local/bin/quark')) {
-				fs.symlinkSync(`${__dirname}/${exec}`, '/usr/local/bin/quark');
+			if (fs.existsSync(quark)) {
+				fs.unlinkSync(quark);
 			}
+			fs.symlinkSync(exec, quark);
 		}
 	}
 }
