@@ -67,7 +67,7 @@ else if (cmd == 'start' || !cmd) {
 			await new Export(cwd, args[0]).export();
 		}
 		if (!fs.existsSync(`${cwd}/out/all/package.json`) ) {
-			await new Build(cwd, cwd + '/out').install_deps();
+			await new Build(cwd, cwd + '/out').build();
 		}
 		// run web server
 		await start(cwd, {server: { port: argument.options.port, root: `${cwd}` }});
