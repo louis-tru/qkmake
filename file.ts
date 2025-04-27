@@ -73,10 +73,8 @@ export default class File extends HttpService {
 			return self.returnErrorStatus(404);
 		}
 
-		//for file
 		if (stat.size > Math.min(self.server.maxFileSize, 5 * 1024 * 1024)) {
-			//File size exceeds the limit
-			return self.returnErrorStatus(403);
+			return self.returnErrorStatus(403); // File size exceeds the limit
 		}
 
 		let mtime = stat.mtime;
@@ -107,22 +105,25 @@ export default class File extends HttpService {
 		if (!json_path) {
 			return this.returnErrorStatus(404);
 		}
-		this.markCompleteResponse();
+		this.setNoCache();
 
+		if (pathname != '/package.json') { // it's not root
+			return this.returnFile(json_path);
+		}
 		const json = JSON.parse(fs.readFileSync(json_path, 'utf8'));
 		json.hash = File.package_hash;
 		json.pkgzHash = ''; // clear pkgz flag
 		let data = JSON.stringify(json, null, 2);
 		let res = this.response;
-		this.setNoCache();
 		this.setDefaultHeader();
 		res.setHeader('Content-Type', 'application/json; charset=utf-8');
 		res.writeHead(200);
 		res.end(data);
+		this.markCompleteResponse();
 	}
 
 	versions_json({pathname}: {pathname:string}) {
-		if (File.versions_json) {
+		if (File.versions_json && pathname == '/versions.json') {
 			let data = JSON.stringify(File.versions_json, null, 2);
 			let res = this.response;
 			this.setNoCache();
@@ -132,7 +133,7 @@ export default class File extends HttpService {
 			res.end(data);
 		} else {
 			let root = this.server.root[0];
-			let [json_path] = ['out/all']
+			let [json_path] = ['out/all', '']
 				.map(e=>resolveLocal(root, e, pathname))
 				.filter(fs.existsSync);
 			if (!json_path) {

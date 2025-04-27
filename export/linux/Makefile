@@ -25,12 +25,12 @@ all: x64 arm64
 x64 arm64:
 	@$(call check,$(HOST_OS),linux,$@)
 	$(MAKE) -C mk -f Makefile \
-		CC_target="$(call prefix $@)gcc" CXX_target="$(call prefix $@)g++" \
-		LINK_target="$(call prefix $@)ld" AR_target="$(call prefix $@)ar" \
-		BUILDTYPE=$(BUILDTYPE) builddir="$(call libs_dir $@)" LINUX_ARCH=$@
+		CC_target="$(call prefix,$@)gcc" CXX_target="$(call prefix,$@)g++" \
+		LINK_target="$(call prefix,$@)ld" AR_target="$(call prefix,$@)ar" \
+		BUILDTYPE=$(BUILDTYPE) builddir="$(call libs_dir,$@)" LINUX_ARCH=$@
 	mkdir -p $(OUTPUT)/small/run.libs/linux
 	cp -rf $(OUTPUT)/usr/linux/*          $(OUTPUT)/small/run.libs/linux
-	cp $(call libs_dir $@)/*.so           $(OUTPUT)/small/run.libs/linux/$@
-	cp $(call libs_dir $@)/$(TARGET_NAME) $(OUTPUT)/small/run.linux.$@
+	cp $(call libs_dir,$@)/*.so           $(OUTPUT)/small/run.libs/linux/$@
+	cp $(call libs_dir,$@)/$(TARGET_NAME) $(OUTPUT)/small/run.linux.$@
 	cp $(OUTPUT)/linux/run.sh             $(OUTPUT)/small
 	echo Complete target "$(OUTPUT)/small/run.linux.$@"

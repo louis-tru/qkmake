@@ -32,7 +32,7 @@ import util from 'qktool/util';
 import paths from './paths';
 import * as fs from 'qktool/fs';
 import path from 'qktool/path';
-import {syscall} from 'qktool/syscall';
+import {syscall,execSync,exec} from 'qktool/syscall';
 import Build, {
 	PackageJson,native_source,
 	native_header,parse_json_file, resolveLocal, saerchModules
@@ -51,6 +51,15 @@ function filter_repeat(array: string[], ignore?: string) {
 		}
 	});
 	return Object.getOwnPropertyNames(r);
+}
+
+function xdgOpen(arg: string) {
+	if (host_os == 'linux') {
+		if (execSync(`which xdg-open`).code == 0) {
+			exec(`xdg-open ${arg}`); // open project
+			setTimeout(e=>process.exit(0),1e3); // force exit
+		}
+	}
 }
 
 type PkgJson = PackageJson;
@@ -379,7 +388,7 @@ class Package {
 					str = str.replace(/ARGV_RELEASE/, `fs_resources("${start_argv[2]}")`);
 					fs.writeFileSync(main, str);
 				}
-				sources.push(`../Project/linux/${name}.cc`);
+				sources.push(`../Project/linux/main.cc`);
 				fs.cp_sync(template, out, { replace: false });
 				str = fs.readFileSync(`${out}/Makefile`, 'utf-8');
 				str = str.replace(/^TARGET_NAME\s*\??=.*/gm, `TARGET_NAME = ${name}`);
@@ -682,26 +691,6 @@ export default class Export {
 		str += `\nrootProject.name = "${name}"`;
 		str += `\ninclude(":app")`;
 		fs.writeFileSync(`${proj_out}/settings.gradle.kts`, str);
-
-		try {
-			if (host_os == 'mac') {
-				// open project
-				if (fs.existsSync('/Applications/Android Studio.app')) { // check is install 'Android Studio'
-					child_process.execSync('open -a "/Applications/Android Studio.app" Project/android');
-				} else {
-					child_process.execSync('open Project/android'); // open project
-				}
-			} else {
-				child_process.exec('xdg-open Project/android'); // open project
-				setTimeout(e=>process.exit(0),1e3); // force exit
-			}
-		} catch (e) {
-		}
-		console.log(`export ${self.os} complete`);
-	}
-
-	private gen_linux() {
-		return this.gen();
 	}
 
 	async export() {
@@ -734,26 +723,44 @@ export default class Export {
 
 		if (os == 'android') {
 			self.gen_android_studio();
-		} else if (os == 'linux') {
-			let out = self.gen_linux();
+			try {
+				if (host_os == 'mac') {
+					if (fs.existsSync('/Applications/Android Studio.app')) { // check is install 'Android Studio'
+						execSync(`open -a "/Applications/Android Studio.app" ${this.proj_out}`);
+					} else {
+						execSync(`open ${this.proj_out}`); // open project
+					}
+				} else if (host_os == 'linux') {
+					xdgOpen(this.proj_out);
+				}
+			} catch (e) {}
+		}
+		else if (os == 'linux') {
+			self.gen();
 			if (host_os != 'linux') {
 				console.warn('Only compiling in Linux at Linux project');
 			}
-			child_process.execSync('open ' + this.proj_out); // open project
-		} else { // mac or ios
+			try {
+				if (host_os == 'mac') {
+					execSync(`open ${this.proj_out}`); // open project
+				} else if (host_os == 'linux') {
+					xdgOpen(this.proj_out);
+				}
+			} catch (e) {}
+		} else { // mac or ios ..
 			let out = self.gen();
 			try {
 				if (host_os == 'mac') {
-					child_process.execSync('open ' + out[0]); // open project
-				} else {
+					execSync('open ' + out[0]); // open project
+				} else if (host_os == 'linux') {
 					if (this.os == 'ios' || this.os == 'mac') {
 						console.warn('Only opening in Macos at Xcode project');
 					}
-					child_process.execSync('xdg-open ' + out[0]); // open project
+					xdgOpen(out[0]);
 				}
-			} catch (e) {
-				//
-			}
+			} catch (e) {}
 		}
+
+		console.log(`export ${self.os} complete`);
 	} // export()
 }
