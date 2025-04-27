@@ -100,21 +100,18 @@ export default class File extends HttpService {
 	}
 
 	package_json({pathname}: {pathname:string}) {
-		let json: Dict = File.versions_json!;
-		if (!json) {
-			let root = this.server.root[0];
-			let [json_path] = ['out/all','']
-				.map(e=>resolveLocal(root, e, pathname))
-				.filter(fs.existsSync);
-			if (!json_path) {
-				return this.returnErrorStatus(404);
-			}
-			this.markCompleteResponse();
-			
-			json = JSON.parse(fs.readFileSync(json_path, 'utf8'));
-			json.hash = File.package_hash;
-			json.pkgzHash = ''; // clear pkgz flag
+		let root = this.server.root[0];
+		let [json_path] = ['out/all','']
+			.map(e=>resolveLocal(root, e, pathname))
+			.filter(fs.existsSync);
+		if (!json_path) {
+			return this.returnErrorStatus(404);
 		}
+		this.markCompleteResponse();
+
+		const json = JSON.parse(fs.readFileSync(json_path, 'utf8'));
+		json.hash = File.package_hash;
+		json.pkgzHash = ''; // clear pkgz flag
 		let data = JSON.stringify(json, null, 2);
 		let res = this.response;
 		this.setNoCache();
@@ -125,15 +122,25 @@ export default class File extends HttpService {
 	}
 
 	versions_json({pathname}: {pathname:string}) {
-		let root = this.server.root[0];
-		let [json_path] = ['out/all']
-			.map(e=>resolveLocal(root, e, pathname))
-			.filter(fs.existsSync);
-		if (!json_path) {
-			return this.returnErrorStatus(404);
+		if (File.versions_json) {
+			let data = JSON.stringify(File.versions_json, null, 2);
+			let res = this.response;
+			this.setNoCache();
+			this.setDefaultHeader();
+			res.setHeader('Content-Type', 'application/json; charset=utf-8');
+			res.writeHead(200);
+			res.end(data);
+		} else {
+			let root = this.server.root[0];
+			let [json_path] = ['out/all']
+				.map(e=>resolveLocal(root, e, pathname))
+				.filter(fs.existsSync);
+			if (!json_path) {
+				return this.returnErrorStatus(404);
+			}
+			this.setNoCache();
+			this.returnFile(json_path);
 		}
-		this.setNoCache();
-		this.returnFile(json_path);
 	}
 
 	siteFile({pathname}: {pathname:string}) {
