@@ -29,5 +29,13 @@ if (process.argv[2] == 'build') {
 			fs.unlinkSync(quark);
 		}
 		fs.symlinkSync(exec, quark);
+
+		if (host_os == 'win32') {
+			//
+		} else {
+			if (!fs.existsSync('/usr/local/bin/quark')) {
+				fs.symlinkSync(`${__dirname}/${exec}`, '/usr/local/bin/quark');
+			}
+		}
 	}
 }
