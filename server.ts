@@ -32,10 +32,11 @@ import 'qktool/_util';
 import Console from './console';
 import File from './file';
 import config from './config';
+import Message from './message';
 import {ServerImpl,Options} from 'qktool/server';
 import * as remote_log from './remote_log';
 import {getLocalNetworkHost} from 'qktool/network_host';
-import { saerchModules } from './build';
+import { saerchModules, parse_json_file, Hash } from './build';
 import * as fs from 'fs';
 import * as ts from 'typescript';
 import path from 'qktool/path';
@@ -62,6 +63,7 @@ export default function start_server(options?: Opt) {
 
 	ser.setService('File', File);
 	ser.setService('Console', Console);
+	ser.setService('Message', Message);
 
 	ser.start().then(()=>{
 		console.log( 'Start web server:' );
@@ -78,17 +80,50 @@ export async function start(runPoint: string, opts?: Opt) {
 	let ser = start_server(opts);
 	let tsconfig = {
 		extends: `./tsconfig.json`, 
-		exclude: [saerchModules,'Project','out','.git','.svn'],
+		exclude: [saerchModules,'Project','out','.git'],
 	};
 	fs.writeFileSync(`${src}/.tsconfig.json`, JSON.stringify(tsconfig, null, 2));
 
 	let sys = Object.create(ts.sys) as (typeof ts.sys);
-	let out_all = `${src}/out/all`;
+	let out_all = `${src}/out/all/`;
+	let pkg_json = parse_json_file(`${out_all}package.json`);
+	let {filesHash,pkgzFiles} = parse_json_file(`${out_all}versions.json`);
+	let allFiles = Object.keys({...pkgzFiles, ...filesHash});
+
+	File.versions_json = {filesHash, pkgzFiles};
+	File.package_hash = pkg_json.hash || '';
+
+	let delaySaveId: NodeJS.Timeout;
+	function delaySaveToLocal() {
+		clearTimeout(delaySaveId);
+		delaySaveId = setTimeout(saveToLocal, 30e3); // 30 second
+	}
+
+	function saveToLocal() {
+		fs.writeFileSync(`${out_all}versions.json`, JSON.stringify({filesHash,pkgzFiles}, null, 2));
+		fs.writeFileSync(`${out_all}package.json`, JSON.stringify(pkg_json, null, 2));
+	}
+
+	process.on('exit', saveToLocal);
+	process.on('SIGINT', ()=>process.exit());
 
 	sys.writeFile = function(pathname: string, data: string, writeByteOrderMark?: boolean) {
 		if (path.extname(pathname) == '.js') {
-			// TODO: Emit notification to debug clients
-			console.log('Changed:', pathname.substring(out_all.length));
+			let fileName = pathname.substring(out_all.length);
+			let hash = new Hash();
+			hash.update_str(data);
+			let hashStr = hash.digest32();
+			filesHash[fileName] = hashStr;
+
+			hash = new Hash();
+			for (let file of allFiles)
+				hash.update_str(filesHash[file] || pkgzFiles[file]);
+			pkg_json.hash = hash.digest128();
+			delaySaveToLocal();
+
+			// Emit notification to debug clients
+			Message.triggerClients(ser, 'FileChanged', { fileName, hash: hashStr });
+			console.log('Changed:', fileName);
 		}
 		ts.sys.writeFile(pathname, data, writeByteOrderMark);
 	}
@@ -114,4 +149,6 @@ export async function start(runPoint: string, opts?: Opt) {
 		}
 	);
 	ts.createWatchProgram(watchCompilerHost);
+
+	setTimeout(()=>console.log('Watching files change:'));
 }

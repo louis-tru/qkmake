@@ -132,7 +132,6 @@ const init_tsconfig = {
 	"exclude": [
 		"out",
 		".git",
-		".svn",
 		"_.js",
 		"Project",
 		saerchModules,
@@ -165,7 +164,7 @@ export function exec_cmd(cmd: string) {
 	}
 }
 
-export function parse_json_file(filename: string, strict?: boolean): PackageJson {
+export function parse_json_file(filename: string, strict?: boolean) {
 	try {
 		var str = fs.readFileSync(filename, 'utf-8');
 		if (strict) {
@@ -181,6 +180,7 @@ export function parse_json_file(filename: string, strict?: boolean): PackageJson
 
 function new_zip(cwd: string, sources: string[], target: string) {
 	console.log('Out ', path.basename(target));
+	//console.log('; zip ' + target + ' ' + sources.join(' '))
 	exec_cmd('cd ' + cwd + '; rm -r ' + target + '; zip ' + target + ' ' + sources.join(' '));
 }
 
@@ -189,7 +189,7 @@ function unzip(source: string, target: string) {
 }
 
 function copy_file(source: string, target: string) {
-	fs.mkdirpSync( path.dirname(target) ); // 先创建目录
+	fs.mkdirpSync( path.dirname(target) ); // First make directory
 
 	var rfd  = fs.openSync(source, 'r');
 	var wfd  = fs.openSync(target, 'w');
@@ -201,13 +201,13 @@ function copy_file(source: string, target: string) {
 	do {
 		len = fs.readSync(rfd, buff, 0, size, null);
 		fs.writeSync(wfd, buff, 0, len, null);
-		hash.update_buff_with_len(buff, len); // 更新hash
+		hash.update_buff_with_len(buff, len); // update hash
 	} while (len == size);
 	
 	fs.closeSync(rfd);
 	fs.closeSync(wfd);
 	
-	return hash.digest();
+	return hash.digest32();
 }
 
 function read_file_text(pathname: string) {
@@ -216,7 +216,7 @@ function read_file_text(pathname: string) {
 	hash.update_buff(buff);
 	return {
 		value: buff.toString('utf-8'),
-		hash: hash.digest(),
+		hash: hash.digest32(),
 	};
 }
 
@@ -248,49 +248,49 @@ export interface PackageJson extends Dict {
 
 type PkgJson = PackageJson;
 
-class Hash {
-	hash = 5381;
+export class Hash {
+	hash = 5381n;
 
 	update_str(input: string) {
 		var hash = this.hash;
 		for (var i = input.length - 1; i > -1; i--) {
-			hash += (hash << 5) + input.charCodeAt(i);
+			hash += (hash << 5n) + BigInt(input.charCodeAt(i));
 		}
-		this.hash = hash;
+		this.hash = hash & 0xFFFFFFFFFFFFFFFFFFFFFFFFn; // use 128bit
 	}
 
 	update_buff(input: Buffer) {
 		var hash = this.hash;
 		for (var i = input.length - 1; i > -1; i--) {
-			hash += (hash << 5) + input[i];
+			hash += (hash << 5n) + BigInt(input[i]);
 		}
-		this.hash = hash;
+		this.hash = hash & 0xFFFFFFFFFFFFFFFFFFFFFFFFn;
 	}
 
 	update_buff_with_len(input: Buffer, len: number) {
 		var hash = this.hash;
 		for (var i = len - 1; i > -1; i--) {
-			hash += (hash << 5) + input[i];
+			hash += (hash << 5n) + BigInt(input[i]);
 		}
-		this.hash = hash;
+		this.hash = hash & 0xFFFFFFFFFFFFFFFFFFFFFFFFn;
 	}
 
-	digest() {
-		var value = this.hash & 0x7FFFFFFF;
+	digest32() {
+		var value = this.hash & 0xFFFFFFFFn;
 		var retValue = '';
 		do {
-			retValue += base64_chars[value & 0x3F];
+			retValue += base64_chars[Number(value & 0x3Fn)];
 		}
-		while ( value >>= 6 );
+		while ( value >>= 6n );
 		return retValue;
 	}
-	digest64() {
+	digest128() {
 		var value = this.hash;
 		var retValue = '';
 		do {
-			retValue += base64_chars[value & 0x3F];
+			retValue += base64_chars[Number(value & 0x3Fn)];
 		}
-		while ( (value >>= 6) > 0 );
+		while ( value >>= 6n );
 		return retValue;
 	}
 }
@@ -332,8 +332,8 @@ class Package {
 		this._skipInstall  = skipInstall;
 	}
 
-	// 获取跳过文件列表
-	// "name" pkg 名称
+	// getting skip files list
+	// "name" pkg
 	private get_skip_files(pkg_json: PkgJson, name: string) {
 		var rev: string[] = [];
 
@@ -403,7 +403,7 @@ class Package {
 		// build tsc
 		if (fs.existsSync(source + '/tsconfig.json')) {
 			self._tsconfig_outDir = this._target_all;
-			let tsconfig = { extends: './tsconfig.json', exclude: [saerchModules,'out','.git','.svn'] };
+			let tsconfig = { extends: './tsconfig.json', exclude: [saerchModules,'out','.git'] };
 			if (self === self._host.package) {
 				tsconfig.exclude.push('Project');
 			}
@@ -420,20 +420,20 @@ class Package {
 		// each dir
 		self.build_each_pkg_dir('', '');
 
-		let pkg_files = ['versions.json'];
+		let pkgz_files = ['versions.json'];
 		let versions = self._versions
 		let hash = new Hash();
 
-		for (let i in versions.pkgzFiles) {  // 计算 version code
-			pkg_files.push(`"${versions.pkgzFiles[i]}"`);
+		for (let i in versions.pkgzFiles) {  // compute version code
+			pkgz_files.push(`"${i}"`);
 			hash.update_str(versions.pkgzFiles[i]);
 		}
-		pkg_json.pkgzHash = hash.digest64();
+		pkg_json.pkgzHash = hash.digest128();
 
 		for (let i in versions.filesHash) {
 			hash.update_str(versions.filesHash[i]);
 		}
-		pkg_json.hash = hash.digest64();
+		pkg_json.hash = hash.digest128();
 
 		if (!self._skipInstall) { // no skil
 			fs.writeFileSync(target_small + '/package.json', JSON.stringify(pkg_json, null, 2)); // rewrite package.json
@@ -442,15 +442,14 @@ class Package {
 		fs.writeFileSync(target_all + '/versions.json', JSON.stringify(versions, null, 2));
 		fs.writeFileSync(target_all + '/package.json', JSON.stringify(pkg_json, null, 2)); // rewrite package.json
 
-		
-		new_zip(target_all, pkg_files, target_all + '/' + pkg_json.name + '.pkgz');
+		new_zip(target_all, pkgz_files, target_all + '/' + pkg_json.name + '.pkgz');
 	}
 
 	private copy_js(source: string, target: string) {
 		let self = this;
 		let data = read_file_text(source);
 
-		if ( self._enable_minify ) {
+		if (self._enable_minify) {
 			let minify = uglify.minify(data.value, {
 				toplevel: true,
 				keep_fnames: false,
@@ -474,11 +473,11 @@ class Package {
 
 			let hash = new Hash();
 			hash.update_str(data.value);
-			data.hash = hash.digest();
+			data.hash = hash.digest32();
 		}
 
-		if (source != target) {
-			fs.mkdirpSync(path.dirname(target)); // 先创建目录
+		if (source != target || self._enable_minify) {
+			fs.mkdirpSync(path.dirname(target)); // First create directory
 			fs.writeFileSync(target, data.value, 'utf8');
 		}
 
@@ -489,11 +488,11 @@ class Package {
 		let self = this;
 		let target_all  = resolveLocal(self._target_all, pathname);
 		let target_small  = resolveLocal(self._target_small, pathname);
-		fs.mkdirpSync( path.dirname(target_all) ); // 先创建目录
+		fs.mkdirpSync( path.dirname(target_all) ); // First create directory
 		fs.writeFileSync(target_all, content, 'utf8');
 		let hash = new Hash();
 		hash.update_str(content);
-		self._versions.pkgzFiles[pathname] = hash.digest(); // 记录文件 hash
+		self._versions.pkgzFiles[pathname] = hash.digest32(); // recording hash
 
 		if (!self._skipInstall) {
 			fs.cp_sync(target_all, target_small);
@@ -502,9 +501,9 @@ class Package {
 
 	private build_file(pathname: string) {
 		let self = this;
-		// 跳过文件
+		// skip files
 		for (let name of self._skip_file) {
-			if ( pathname.indexOf(name) == 0 ) { // 跳过这个文件
+			if ( pathname.indexOf(name) == 0 ) { // skip this file
 				self.console_log('Skip', pathname);
 				return;
 			}
@@ -523,7 +522,7 @@ class Package {
 		for (let i = 0; i < self._detach_file.length; i++) {
 			let name = self._detach_file[i];
 			if (pathname.indexOf(name) === 0) {
-				is_detach = true; // 分离这个文件
+				is_detach = true; // detach this file
 				break;
 			}
 		}

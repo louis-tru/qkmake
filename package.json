@@ -10,11 +10,12 @@
 		"url": "http://quarks.cc/"
 	},
 	"bin": {
-		"qkmake": "shell.js"
+		"qkmake": "shell.js",
+		"quark": "quark"
 	},
 	"scripts": {
-		"cp": "mkdir -p out/qkmake && cp -rf LICENSE gyp.* *.md marked export package.json out/qkmake && if [ ! -d out/qkmake/gyp-next ]; then ln -s ../../gyp-next out/qkmake; fi ",
-		"build": "npm run cp && tsc"
+		"build": "node _.js build && tsc",
+		"install": "node _.js install"
 	},
 	"keywords": [
 		"jsx",
@@ -39,7 +40,7 @@
 	"dependencies": {
 		"marked": "~0.3.6",
 		"uglify-es": "~3.0.28",
-		"qktool": "~0.1.0",
+		"qktool": "~0.1.1",
 		"typescript": "~5.8.2"
 	},
 	"devDependencies": {

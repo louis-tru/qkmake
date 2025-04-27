@@ -60,7 +60,7 @@ else if ( cmd == 'build') {
 else if (cmd == 'install') {
 	new Build(cwd, cwd + '/out').install_deps();
 }
-else if (cmd == 'start') {
+else if (cmd == 'start' || !cmd) {
 	(async function() {
 		tryClean();
 		if (['ios', 'android', 'mac', 'linux'].indexOf(args[0]) != -1) {
