@@ -38,9 +38,9 @@ import Build, {
 	native_header,parse_json_file, resolveLocal, saerchModules
 } from './build';
 import { getLocalNetworkHost } from 'qktool/network_host';
-import * as child_process from 'child_process';
 
-const host_os = process.platform == 'darwin' ? 'mac': process.platform;
+const platform = process.platform;
+const host_os = platform == 'darwin' ? 'mac': platform;
 const isWindows = host_os == 'win32';
 
 function filter_repeat(array: string[], ignore?: string) {
@@ -177,7 +177,7 @@ class Package {
 				self.dependencies_recursion.push(pkg.outputName);
 			}
 			for (let file of fs.readdirSync(`${self.host.output}/small`)) {
-				if (path.basename(file).indexOf('run.') != 0) { // skip run.* files
+				if (path.basename(file).indexOf('run') != 0) { // skip run* files
 					if (skip_resources.indexOf(file) == -1)
 						self.bundle_resources.push(`small/${file}`);
 				}
@@ -223,7 +223,7 @@ class Package {
 		let is_include_dirs = false;
 		let skip_source = [
 			'out',
-			'Project',
+			'project',
 			saerchModules,
 			'package-lock.json',
 			`${self.json.name}.gyp`
@@ -303,9 +303,9 @@ class Package {
 			// launchImage
 			fs.cp_sync(`${template}/launch/launch.png`, `${out}/launch/launch.png`, { replace: false } );
 	
-			self.bundle_resources.push(`../Project/<(os)/${main}.storyboard`);
-			self.bundle_resources.push('../Project/<(os)/Images.xcassets');
-			self.bundle_resources.push('../Project/<(os)/launch/launch.png');
+			self.bundle_resources.push(`../project/<(os)/${main}.storyboard`);
+			self.bundle_resources.push('../project/<(os)/Images.xcassets');
+			self.bundle_resources.push('../project/<(os)/launch/launch.png');
 
 			if (!fs.existsSync(`${out}/${main}.mm`)) { // main.mm
 				let start_argv = self.get_start_argv();
@@ -315,8 +315,8 @@ class Package {
 				str = str.replace(/ARGV_RELEASE/, `fs_resources("${start_argv[2]}")`);
 				fs.writeFileSync(`${out}/${main}.mm`, str);
 			}
-			sources.push(`../Project/<(os)/${main}.plist`);
-			sources.push(`../Project/<(os)/${main}.mm`);
+			sources.push(`../project/<(os)/${main}.plist`);
+			sources.push(`../project/<(os)/${main}.mm`);
 		}
 
 		// create gypi json data
@@ -327,7 +327,7 @@ class Package {
 			'targets': [
 				{
 					'variables': is_app ? {
-						'XCODE_INFOPLIST_FILE': '$(SRCROOT)/Project/<(os)/' + main + '.plist'
+						'XCODE_INFOPLIST_FILE': '$(SRCROOT)/project/<(os)/' + main + '.plist'
 					} : {},
 					'target_name': name,
 					'product_name': name,
@@ -388,12 +388,13 @@ class Package {
 					str = str.replace(/ARGV_RELEASE/, `fs_resources("${start_argv[2]}")`);
 					fs.writeFileSync(main, str);
 				}
-				sources.push(`../Project/linux/main.cc`);
+				sources.push(`../project/linux/main.cc`);
 				fs.cp_sync(template, out, { replace: false });
 				str = fs.readFileSync(`${out}/Makefile`, 'utf-8');
 				str = str.replace(/^TARGET_NAME\s*\??=.*/gm, `TARGET_NAME = ${name}`);
 				fs.writeFileSync(`${out}/Makefile`, str);
 				fs.cp_sync(`${__dirname}/export/run.sh`, `${out}/run.sh`, { replace: false });
+				fs.chmodSync(`${out}/run.sh`, 0o755);
 			}
 		} else if ( self._binding ) {
 			type = 'static_library';
@@ -412,7 +413,8 @@ class Package {
 					},
 					'sources': sources,
 					'ldflags': os == 'linux' ? [
-						'-Wl,-rpath=\$ORIGIN/run.libs/linux/${LINUX_ARCH}'
+						'${LDFLAGS}',
+						// '-Wl,-rpath=\\$$ORIGIN/run/linux/${ARCH}'
 					]: []
 				}
 			]
@@ -459,7 +461,7 @@ export default class Export {
 
 		this.source = resolveLocal(source);
 		this.output = resolveLocal(source, 'out');
-		this.proj_out = resolveLocal(source, 'Project', os);
+		this.proj_out = resolveLocal(source, 'project', os);
 		this.os = os;
 		this.outputs = {};
 
@@ -580,10 +582,8 @@ export default class Export {
 
 		// write gyp file
 		fs.writeFileSync(gyp_file, JSON.stringify(gyp, null, 2));
-		let out = self.gen_item(proj_name); // gen platform project
-		// fs.removerSync(gyp_file); // write gyp file
 
-		return out;
+		return self.gen_item(proj_name); // gen platform project
 	}
 
 	private gen_android_studio() {

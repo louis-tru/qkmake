@@ -132,8 +132,7 @@ const init_tsconfig = {
 	"exclude": [
 		"out",
 		".git",
-		"_.js",
-		"Project",
+		"project",
 		saerchModules,
 	]
 };
@@ -142,7 +141,21 @@ export function resolveLocal(...args: string[]) {
 	return path.fallbackPath(path.resolve(...args));
 }
 
-export function exec_cmd(cmd: string) {
+export function parse_json_file(filename: string, strict?: boolean) {
+	try {
+		var str = fs.readFileSync(filename, 'utf-8');
+		if (strict) {
+			return JSON.parse(str);
+		} else {
+			return eval('(\n' + str + '\n)');
+		}
+	} catch (err: any) {
+		err.message = filename + ': ' + err.message;
+		throw err;
+	}
+}
+
+function exec_cmd(cmd: string) {
 	var r = child_process.spawnSync('sh', ['-c', cmd]);
 	if (r.status != 0) {
 		if (r.stdout.length) {
@@ -161,20 +174,6 @@ export function exec_cmd(cmd: string) {
 			rv.push(r.stderr);
 		}
 		return rv.join('\n');
-	}
-}
-
-export function parse_json_file(filename: string, strict?: boolean) {
-	try {
-		var str = fs.readFileSync(filename, 'utf-8');
-		if (strict) {
-			return JSON.parse(str);
-		} else {
-			return eval('(\n' + str + '\n)');
-		}
-	} catch (err: any) {
-		err.message = filename + ': ' + err.message;
-		throw err;
 	}
 }
 
@@ -353,7 +352,7 @@ class Package {
 		rev.push('versions.json');
 		rev.push('package-lock.json');
 		rev.push('out');
-		rev.push('Project');
+		rev.push('project');
 
 		return rev;
 	}
@@ -405,7 +404,7 @@ class Package {
 			self._tsconfig_outDir = this._target_all;
 			let tsconfig = { extends: './tsconfig.json', exclude: [saerchModules,'out','.git'] };
 			if (self === self._host.package) {
-				tsconfig.exclude.push('Project');
+				tsconfig.exclude.push('project');
 			}
 			let json = parse_json_file(source + '/tsconfig.json');
 			let tsBuildInfoFile = json.compilerOptions && json.compilerOptions.tsBuildInfoFile;
@@ -623,7 +622,7 @@ class Package {
 		} else {
 			for (var stat of fs.listSync(source)) {
 				if (stat.name[0] != '.' || !self._host.ignore_hide) {
-					if (['Project','out','package-lock.json','tsconfig.json'].indexOf(stat.name) == -1) {
+					if (['project','out','package-lock.json','tsconfig.json'].indexOf(stat.name) == -1) {
 						var basename = stat.name;
 						let path = pathname ? pathname + '/' + basename : basename; 
 						if ( stat.isFile() ) {
@@ -719,7 +718,7 @@ export default class Build {
 		console.log(`Install dependencies ...`);
 		process.stdin.resume();
 
-		let r = await exec(`npm install --only=prod --ignore-scripts`, {
+		let r = await exec(`npm install --only=prod`, { // --ignore-scripts
 			stdout: process.stdout,
 			stderr: process.stderr, stdin: process.stdin,
 		});
@@ -788,7 +787,7 @@ export default class Build {
 		let name = path.basename(process.cwd()) || 'qkproj';
 		let json = {
 			name,
-			app: name,
+			app: name[0].toUpperCase() + name.substring(1),
 			id: `org.quark.${name}`,
 			main: 'index.js',
 			types: 'index',
@@ -804,7 +803,7 @@ export default class Build {
 		fs.writeFileSync('tsconfig.json', JSON.stringify(init_tsconfig, null, 2));
 		fs.writeFileSync(`.editorconfig`, init_editorconfig);
 		fs.writeFileSync(`.gitignore`, ['.vscode', '*.DS_Store',
-			saerchModules, 'out', 'Project', '*.gyp', '.tsconfig.json'].join('\n'));
+			saerchModules, 'out', 'project', '*.gyp', '.tsconfig.json'].join('\n'));
 	}
 
 }

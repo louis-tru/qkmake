@@ -15,4 +15,6 @@ if [ "$arch" = "x86_64" ]; then
 	arch="x64"
 fi
 
+# run=`readlink -f run.$os.$arch`
+
 ./run.$os.$arch "$@"

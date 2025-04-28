@@ -80,7 +80,7 @@ export async function start(runPoint: string, opts?: Opt) {
 	let ser = start_server(opts);
 	let tsconfig = {
 		extends: `./tsconfig.json`, 
-		exclude: [saerchModules,'Project','out','.git'],
+		exclude: [saerchModules,'project','out','.git'],
 	};
 	fs.writeFileSync(`${src}/.tsconfig.json`, JSON.stringify(tsconfig, null, 2));
 

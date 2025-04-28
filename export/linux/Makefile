@@ -4,9 +4,9 @@ BUILDTYPE   ?= Release
 HOST_OS     ?= $(shell uname|tr '[A-Z]' '[a-z]')
 OUTPUT      ?= $(shell sh -c 'cd ../../out && pwd')
 
-libs_dir=$(OUTPUT)/linux/$(1).$(BUILDTYPE)
-
-prefix=$(if $(filter arm64,$(1)),aarch64-linux-gnu-)
+builddir=$(OUTPUT)/linux/$(1).$(BUILDTYPE)
+cc_prefix=$(if $(filter arm64,$(1)),aarch64-linux-gnu-)
+arch_name=$(if $(filter arm64,$(1)),armv8-a,x86-64)
 
 check=\
 	if [ "$(1)" != "$(2)" ]; then \
@@ -16,7 +16,7 @@ check=\
 		exit 1; \
 	fi
 
-.PHONY: all x64 arm64
+.PHONY: all x64 arm64 clean
 
 .SECONDEXPANSION:
 
@@ -25,12 +25,21 @@ all: x64 arm64
 x64 arm64:
 	@$(call check,$(HOST_OS),linux,$@)
 	$(MAKE) -C mk -f Makefile \
-		CC_target="$(call prefix,$@)gcc" CXX_target="$(call prefix,$@)g++" \
-		LINK_target="$(call prefix,$@)ld" AR_target="$(call prefix,$@)ar" \
-		BUILDTYPE=$(BUILDTYPE) builddir="$(call libs_dir,$@)" LINUX_ARCH=$@
-	mkdir -p $(OUTPUT)/small/run.libs/linux
-	cp -rf $(OUTPUT)/usr/linux/*          $(OUTPUT)/small/run.libs/linux
-	cp $(call libs_dir,$@)/*.so           $(OUTPUT)/small/run.libs/linux/$@
-	cp $(call libs_dir,$@)/$(TARGET_NAME) $(OUTPUT)/small/run.linux.$@
-	cp $(OUTPUT)/linux/run.sh             $(OUTPUT)/small
+		CC.target="$(call cc_prefix,$@)gcc" CXX.target="$(call cc_prefix,$@)g++" \
+		LINK.target="$(call cc_prefix,$@)g++" AR.target="$(call cc_prefix,$@)ar" \
+		BUILDTYPE=$(BUILDTYPE) builddir="$(call builddir,$@)" \
+		ARCH=$@ ARCH_NAME="$(call arch_name,$@)" \
+		LDFLAGS="-Wl,-rpath=\\$$\$$ORIGIN/run/linux/$@"
+	mkdir -p $(OUTPUT)/small/run/linux/$@
+
+	if [ -f "$(call builddir,$@)/*.so" ]; then \
+		cp $(call builddir,$@)/*.so         $(OUTPUT)/small/run/linux/$@; fi
+	cp $(OUTPUT)/usr/linux/$@/*.so        $(OUTPUT)/small/run/linux/$@
+	cp $(call builddir,$@)/$(TARGET_NAME) $(OUTPUT)/small/run.linux.$@
+	[ -f run.linux.$@ ] || ln -s          ../../out/small/run.linux.$@ .
+	cp run.sh                             $(OUTPUT)/small
 	echo Complete target "$(OUTPUT)/small/run.linux.$@"
+
+clean:
+	rm -rfv $(call builddir,x64)
+	rm -rfv $(call builddir,arm64)
