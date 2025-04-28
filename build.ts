@@ -408,11 +408,13 @@ class Package {
 			}
 			let json = parse_json_file(source + '/tsconfig.json');
 			let tsBuildInfoFile = json.compilerOptions && json.compilerOptions.tsBuildInfoFile;
-			fs.rm_r_sync(path.isAbsolute(tsBuildInfoFile) ?
-				tsBuildInfoFile: resolveLocal(source, tsBuildInfoFile));
+			if (tsBuildInfoFile) {
+				fs.rm_r_sync(path.isAbsolute(tsBuildInfoFile) ?
+					tsBuildInfoFile: resolveLocal(source, tsBuildInfoFile));
+			}
 			fs.writeFileSync(`${source}/.tsconfig.json`, JSON.stringify(tsconfig, null, 2));
 			exec_cmd(`cd ${source} && ${__dirname}/node_modules/.bin/tsc --project .tsconfig.json \
-				--outDir ${self._tsconfig_outDir} --declarationDir ${this._target_types}`);
+				--outDir ${self._tsconfig_outDir} --declarationDir ${this._target_types} --declaration`);
 			fs.unlinkSync(`${source}/.tsconfig.json`);
 		}
 
