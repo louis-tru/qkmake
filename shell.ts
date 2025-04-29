@@ -82,8 +82,16 @@ else if (cmd == 'start') {
 		args[0] = `http://${(getLocalNetworkHost()[0] || '127.0.0.1')}:1026`;
 	} if (arg0 == 'local') {
 		args[0] = `${path.cwd()}/out/all`;
-	} else if (path.resolve(arg0) == path.cwd()) {
-		args[0] = `${path.cwd()}/out/all`;
+	} else if (arg0) {
+		if (arg0[0] == '-') {
+			args.unshift(`${path.cwd()}/out/all`);
+		} else {
+			if (path.resolve(arg0) == path.cwd()) {
+				args[0] = `${path.cwd()}/out/all`;
+			}
+		}
+	} else {
+		args.unshift(`${path.cwd()}/out/all`);
 	}
 	console.log(`quark`, ...args);
 	spawn('quark', [...args], {
