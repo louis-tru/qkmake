@@ -5,6 +5,9 @@ import Build from './build';
 import Export from './export';
 import {start} from './server';
 import * as argument from 'qktool/arguments';
+import {spawn} from 'qktool/syscall';
+import path from 'qktool/path';
+import { getLocalNetworkHost } from 'qktool/network_host';
 
 const args = process.argv.slice(2);
 const cmd = args.shift();
@@ -25,18 +28,24 @@ function tryClean() {
 def_opts(['help','h'], 0,     '--help,-h      Print help info');
 def_opts(['port','p'], 1026,  '--port=PORT,-p PORT Run quark debugger server port [{0}]');
 def_opts(['clean','c'], 0,    '--clean,-c     First clean build directory [{0}]');
+def_opts(['debug','d'], '127.0.0.1:9229',
+															'--debug,-d     Debug address and prot [{0}]');
+def_opts(['brk','b'],   0,    '--brk,-b       Startup as debugger break [{0}]');
 
 if (opts.help) {
 	console.log('Usage: qkmake Command [OS] [Option]');
 	console.log('Command:');
-	console.log('  init           Initialize the project in an empty directory');
-	console.log('  build          Install dependencies and Build transform all of TS files and generate the PKGZ file');
+	console.log('  init [examples] Initialize the project in an empty directory');
+	console.log('  build           Install dependencies and Build transform all of TS files and generate the PKGZ file');
 	console.log('  export  [OS]');
-	console.log('                 Export project files for the target system');
-	console.log('  install        Install dependencies');
-	console.log('  start   [OS]');
-	console.log('                 Start the web debugging service and monitor file changes,');
-	console.log('                 And export project files if use os param');
+	console.log('                  Export project files for the target system');
+	console.log('  open    [OS]    Open only the exported project if no exported yet then there will exec export CMD');
+	console.log('  install         Install dependencies');
+	console.log('  start   [local|web]');
+	console.log('                  Startup and run Quark ui program and forward all of params to Quark');
+	console.log('  watch   [OS]');
+	console.log('                  Start the web debugging service and watching file changes,');
+	console.log('                  And export project files if use os param');
 	console.log('OS:');
 	console.log('  Only OS for the "ios" "android" "mac" and "linux"');
 	console.log('Options:');
@@ -45,22 +54,45 @@ if (opts.help) {
 	console.log('  qkmake init');
 	console.log('  qkmake build  -c');
 	console.log('  qkmake export ios');
-	console.log('  qkmake start  ios');
+	console.log('  qkmake open   ios');
+	console.log('  qkmake start  .');
+	console.log('  qkmake watch');
 }
-else if ( cmd == 'export' ) {
+else if (cmd == 'export') {
 	tryClean();
 	new Export(cwd, args[0] || host_os).export().catch(e=>console.error(e));
 }
-else if ( cmd == 'build') {
+else if (cmd == 'build') {
 	tryClean();
 	new Build(cwd, cwd + '/out').build().catch(e=>console.error(e));
-} else if (cmd == 'init') {
-	new Build(cwd, cwd + '/out').init();
+}
+else if (cmd == 'init') {
+	new Build(cwd, cwd + '/out').init(args[0]);
 }
 else if (cmd == 'install') {
-	new Build(cwd, cwd + '/out').install_deps();
+	new Build(cwd, cwd + '/out').install_deps(args);
 }
-else if (cmd == 'start' || !cmd) {
+else if (cmd == 'open') {
+	tryClean();
+	new Export(cwd, args[0]).export(true);
+}
+else if (cmd == 'start') {
+	const arg0 = args[0] || '';
+	if (arg0 == 'web') {
+		args[0] = `http://${(getLocalNetworkHost()[0] || '127.0.0.1')}:1026`;
+	} if (arg0 == 'local') {
+		args[0] = `${path.cwd()}/out/all`;
+	} else if (path.resolve(arg0) == path.cwd()) {
+		args[0] = `${path.cwd()}/out/all`;
+	}
+	console.log(`quark`, ...args);
+	spawn('quark', [...args], {
+		onData:()=>'',onError:()=>'',
+		stdout: process.stdout,
+		stderr: process.stderr, stdin: process.stdin,
+	}).catch(e=>console.error);
+}
+else if (cmd == 'watch' || !cmd) {
 	(async function() {
 		tryClean();
 		if (['ios', 'android', 'mac', 'linux'].indexOf(args[0]) != -1) {

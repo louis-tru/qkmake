@@ -138,7 +138,7 @@ const init_tsconfig = {
 };
 
 export function resolveLocal(...args: string[]) {
-	return path.fallbackPath(path.resolve(...args));
+	return path.classicPath(path.resolve(...args));
 }
 
 export function parse_json_file(filename: string, strict?: boolean) {
@@ -711,7 +711,7 @@ export default class Build {
 		}
 	}
 
-	async install_deps() {
+	async install_deps(args?: string[]) {
 		if ( !fs.existsSync(`${this.source}/package.json`) ) {
 			console.warn('No installed anything');
 			return ;
@@ -720,7 +720,7 @@ export default class Build {
 		console.log(`Install dependencies ...`);
 		process.stdin.resume();
 
-		let r = await exec(`npm install --only=prod`, { // --ignore-scripts
+		let r = await exec(`npm install --only=prod ${(args || []).join(' ')}`, { // --ignore-scripts
 			stdout: process.stdout,
 			stderr: process.stderr, stdin: process.stdin,
 		});
@@ -775,7 +775,7 @@ export default class Build {
 	/**
 	 * @method init() init package
 	 */
-	init() {
+	init(examples?: string) {
 		util.assert(fs.readdirSync(process.cwd()).length == 0, 'Directory must be empty');
 
 		for (let pkg of paths.default_modules) {
@@ -786,26 +786,30 @@ export default class Build {
 		}
 		fs.cp_sync(paths.types, `${saerchModules}/@types`);
 
-		let name = path.basename(process.cwd()) || 'qkproj';
-		let json = {
-			name,
-			app: name[0].toUpperCase() + name.substring(1),
-			id: `org.quark.${name}`,
-			main: 'index.js',
-			types: 'index',
-			version: '1.0.0',
-			description: "",
-			dependencies: {}
-		};
-		init_tsconfig.compilerOptions.outDir = `out/tsc/${name}`;
+		if (examples == 'examples') {
+			fs.cp_sync(paths.examples, this.target);
+		} else {
+			let name = path.basename(process.cwd()) || 'qkproj';
+			let json = {
+				name,
+				app: name[0].toUpperCase() + name.substring(1),
+				id: `org.quark.${name}`,
+				main: 'index.js',
+				types: 'index',
+				version: '1.0.0',
+				description: "",
+				dependencies: {}
+			};
+			init_tsconfig.compilerOptions.outDir = `out/tsc/${name}`;
 
-		fs.writeFileSync('package.json', JSON.stringify(json, null, 2));
-		fs.writeFileSync('index.tsx', init_code);
-		fs.writeFileSync('test.ts', init_code2);
-		fs.writeFileSync('tsconfig.json', JSON.stringify(init_tsconfig, null, 2));
-		fs.writeFileSync(`.editorconfig`, init_editorconfig);
-		fs.writeFileSync(`.gitignore`, ['.vscode', '*.DS_Store',
-			saerchModules, 'out', 'project', '*.gyp', '.tsconfig.json'].join('\n'));
+			fs.writeFileSync('package.json', JSON.stringify(json, null, 2));
+			fs.writeFileSync('index.tsx', init_code);
+			fs.writeFileSync('test.ts', init_code2);
+			fs.writeFileSync('tsconfig.json', JSON.stringify(init_tsconfig, null, 2));
+			fs.writeFileSync('.editorconfig', init_editorconfig);
+			fs.writeFileSync('.gitignore', ['.vscode', '*.DS_Store',
+				saerchModules, 'out', 'project', '*.gyp', '.tsconfig.json'].join('\n'));
+		}
 	}
 
 }

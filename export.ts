@@ -693,24 +693,24 @@ export default class Export {
 		fs.writeFileSync(`${proj_out}/settings.gradle.kts`, str);
 	}
 
-	async export() {
-		let self = this;
-		let os = self.os;
+	async export(onlyOpen?: boolean) {
+		const self = this;
+		const os = self.os;
 
 		// build apps
 		if (!fs.existsSync(`${self.output}/all/package.json`)) {
 			await (new Build(self.source, self.output).build());
 		}
 
-		let copy_to_usr = (source: string)=>{
-			let target = `${self.output}/usr/${path.basename(source)}`;
+		const copy_to_usr = (source: string)=>{
+			const target = `${self.output}/usr/${path.basename(source)}`;
 			fs.copySync(source, target, { replace: false });
 			return path.relative(self.output, target);
 		};
 
 		if (paths.librarys[os]) {
 			paths.librarys[os].forEach(copy_to_usr);
-			for (let it of paths.librarys[os]) {
+			for (const it of paths.librarys[os]) {
 				fs.chmod_r(`${self.output}/usr/${path.basename(it)}`, 0o755, ()=>{});
 			}
 		}
@@ -721,42 +721,52 @@ export default class Export {
 
 		self.package = self.add_module(self.source, true);
 
+		const name = self.package.outputName;
+		const proj_out = this.proj_out;
+
 		if (os == 'android') {
-			self.gen_android_studio();
+			if (!onlyOpen || !fs.existsSync(`${proj_out}/app`)) {
+				self.gen_android_studio();
+			}
 			try {
 				if (host_os == 'mac') {
 					if (fs.existsSync('/Applications/Android Studio.app')) { // check is install 'Android Studio'
-						execSync(`open -a "/Applications/Android Studio.app" ${this.proj_out}`);
+						execSync(`open -a "/Applications/Android Studio.app" ${proj_out}`);
 					} else {
-						execSync(`open ${this.proj_out}`); // open project
+						execSync(`open ${proj_out}`); // open project
 					}
 				} else if (host_os == 'linux') {
-					xdgOpen(this.proj_out);
+					xdgOpen(proj_out);
 				}
 			} catch (e) {}
 		}
 		else if (os == 'linux') {
-			self.gen();
+			if (!onlyOpen || !fs.existsSync(`${proj_out}/mk`)) {
+				self.gen();
+			}
 			if (host_os != 'linux') {
 				console.warn('Only compiling in Linux at Linux project');
 			}
 			try {
 				if (host_os == 'mac') {
-					execSync(`open ${this.proj_out}`); // open project
+					execSync(`open ${proj_out}`); // open project
 				} else if (host_os == 'linux') {
-					xdgOpen(this.proj_out);
+					xdgOpen(proj_out);
 				}
 			} catch (e) {}
 		} else { // mac or ios ..
-			let out = self.gen();
+			let out = `${proj_out}/${name}.xcodeproj`;
+			if (!onlyOpen || !fs.existsSync(out)) {
+				self.gen();
+			}
 			try {
 				if (host_os == 'mac') {
-					execSync('open ' + out[0]); // open project
+					execSync('open ' + out); // open project
 				} else if (host_os == 'linux') {
 					if (this.os == 'ios' || this.os == 'mac') {
 						console.warn('Only opening in Macos at Xcode project');
 					}
-					xdgOpen(out[0]);
+					xdgOpen(out);
 				}
 			} catch (e) {}
 		}

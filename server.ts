@@ -76,7 +76,7 @@ export default function start_server(options?: Opt) {
 }
 
 export async function start(runPoint: string, opts?: Opt) {
-	let src = path.fallbackPath(path.resolve(runPoint));
+	let src = path.classicPath(path.resolve(runPoint));
 	let ser = start_server(opts);
 	let tsconfig = {
 		extends: `./tsconfig.json`, 
