@@ -787,7 +787,7 @@ export default class Build {
 		fs.cp_sync(paths.types, `${saerchModules}/@types`);
 
 		if (examples == 'examples') {
-			fs.cp_sync(paths.examples, this.target);
+			fs.cp_sync(paths.examples, this.source);
 		} else {
 			let name = path.basename(process.cwd()) || 'qkproj';
 			let json = {
