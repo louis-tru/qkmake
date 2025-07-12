@@ -67,6 +67,14 @@ renderer.heading = function(text, level, raw) {
 	);
 };
 
+renderer.listitem = function(text) {
+	return '<li>' + text.replace(/\n/g, '<br/>') + '</li>\n';
+};
+
+renderer.paragraph = function(text) {
+	return '<p>' + text.replace(/\n/g, '<br/>') + '</p>\n';
+};
+
 export function gen_html(text_md, title, template) {
 	var lexer = new marked.Lexer();
 	var tokens = lexer.lex(text_md);
