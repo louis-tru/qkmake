@@ -43,8 +43,7 @@ const base64_chars =
 	'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-'.split('');
 
 const init_code = `
-import { Application, Window, _CVD } from 'quark';
-import 'quark/_ext';
+import { Application,Window,Jsx } from 'quark';
 
 const app = new Application();
 
@@ -120,7 +119,7 @@ const init_tsconfig = {
 		"experimentalDecorators": true,
 		"removeComments": true,
 		"jsx": "react",
-		"jsxFactory": "_CVD",
+		"jsxFactory": "Jsx",
 		// "typeRoots" : ["../libs"],
 		// "types" : ["node", "lodash", "express"],
 		"incremental": true,
