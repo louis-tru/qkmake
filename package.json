@@ -1,6 +1,6 @@
 {
 	"name": "qkmake",
-	"version": "1.2.0",
+	"version": "1.2.1",
 	"description": "A GUI typesetting display engine and cross platform GUI application development framework based on NodeJS/OpenGL",
 	"main": "server.js",
 	"types": "server",

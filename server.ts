@@ -133,6 +133,7 @@ export async function start(runPoint: string, opts?: Opt) {
 		{
 			outDir: `${src}/out/all`,
 			declarationDir: `${src}/out/types`,
+			declaration: true,
 		},
 		sys,
 		ts.createEmitAndSemanticDiagnosticsBuilderProgram,
