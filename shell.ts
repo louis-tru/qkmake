@@ -35,17 +35,14 @@ def_opts(['brk','b'],   0,    '--brk,-b       Startup as debugger break [{0}]');
 if (opts.help) {
 	console.log('Usage: qkmake Command [OS] [Option]');
 	console.log('Command:');
-	console.log('  init [examples] Initialize the project in an empty directory');
+	console.log('  init    [examples]');
+	console.log('                  Initialize the project in an empty directory');
 	console.log('  build           Install dependencies and Build transform all of TS files and generate the PKGZ file');
-	console.log('  export  [OS]');
-	console.log('                  Export project files for the target system');
+	console.log('  export  [OS]    Export project files for the target system');
 	console.log('  open    [OS]    Open only the exported project if no exported yet then there will exec export CMD');
 	console.log('  install         Install dependencies');
-	console.log('  start   [local|web]');
-	console.log('                  Startup and run Quark ui program and forward all of params to Quark');
-	console.log('  watch   [OS]');
-	console.log('                  Start the web debugging service and watching file changes,');
-	console.log('                  And export project files if use os param');
+	console.log('  start   [web]   Startup and run Quark ui program and forward all of params to Quark');
+	console.log('  watch           Start the web debugging service and watching file changes');
 	console.log('OS:');
 	console.log('  Only OS for the "ios" "android" "mac" and "linux"');
 	console.log('Options:');
@@ -77,35 +74,40 @@ else if (cmd == 'open') {
 	new Export(cwd, args[0]).export(true);
 }
 else if (cmd == 'start') {
-	const arg0 = args[0] || '';
-	if (arg0 == 'web') {
-		args[0] = `http://${(getLocalNetworkHost()[0] || '127.0.0.1')}:1026`;
-	} if (arg0 == 'local') {
-		args[0] = `${path.cwd()}/out/all`;
-	} else if (arg0) {
-		if (arg0[0] == '-') {
-			args.unshift(`${path.cwd()}/out/all`);
+	(async function() {
+		const arg0 = args[0] || '';
+		const all = `${path.cwd()}/out/all`;
+		if (arg0 == 'web') {
+			args[0] = `http://${(getLocalNetworkHost()[0] || '127.0.0.1')}:1026`;
+		}
+		else if (arg0) {
+			if (arg0[0] == '-') {
+				args.unshift(all);
+			} else {
+				if (path.resolve(arg0) == path.cwd()) {
+					args[0] = all;
+				}
+			}
 		} else {
-			if (path.resolve(arg0) == path.cwd()) {
-				args[0] = `${path.cwd()}/out/all`;
+			args.unshift(all);
+		}
+		if (args[0] == all) {
+			if (!fs.existsSync(`${cwd}/out/all/package.json`) ) {
+				await new Build(cwd, cwd + '/out').build();
 			}
 		}
-	} else {
-		args.unshift(`${path.cwd()}/out/all`);
-	}
-	console.log(`quark`, ...args);
-	spawn('quark', [...args], {
-		onData:()=>'',onError:()=>'',
-		stdout: process.stdout,
-		stderr: process.stderr, stdin: process.stdin,
-	}).catch(e=>console.error);
+		console.log(`quark`, ...args);
+		await spawn('quark', [...args], {
+			onData:()=>'',
+			onError:()=>'',
+			stdout: process.stdout,
+			stderr: process.stderr, stdin: process.stdin,
+		});//.catch(e=>console.error);
+	})();
 }
 else if (cmd == 'watch' || !cmd) {
 	(async function() {
 		tryClean();
-		if (['ios', 'android', 'mac', 'linux'].indexOf(args[0]) != -1) {
-			await new Export(cwd, args[0]).export();
-		}
 		if (!fs.existsSync(`${cwd}/out/all/package.json`) ) {
 			await new Build(cwd, cwd + '/out').build();
 		}
