@@ -5,7 +5,7 @@ import Build from './build';
 import Export from './export';
 import {start} from './server';
 import * as argument from 'qktool/arguments';
-import {spawn} from 'qktool/syscall';
+import {spawn,exec} from 'qktool/syscall';
 import path from 'qktool/path';
 import { getLocalNetworkHost } from 'qktool/network_host';
 
@@ -96,13 +96,14 @@ else if (cmd == 'start') {
 				await new Build(cwd, cwd + '/out').build();
 			}
 		}
+		console.log(`Start running...`);
 		console.log(`quark`, ...args);
 		await spawn('quark', [...args], {
 			onData:()=>'',
 			onError:()=>'',
 			stdout: process.stdout,
 			stderr: process.stderr, stdin: process.stdin,
-		});//.catch(e=>console.error);
+		});
 	})();
 }
 else if (cmd == 'watch' || !cmd) {
