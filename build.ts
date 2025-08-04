@@ -103,7 +103,7 @@ const init_tsconfig = {
 		"target": "ES2018",
 		"moduleResolution": "node",
 		"sourceMap": false,
-		"outDir": "out",
+		"outDir": "out/build",
 		"rootDir": ".",
 		"baseUrl": ".",
 		"declaration": true,
@@ -799,7 +799,7 @@ export default class Build {
 				description: "",
 				dependencies: {}
 			};
-			init_tsconfig.compilerOptions.outDir = `out/tsc/${name}`;
+			// init_tsconfig.compilerOptions.outDir = `out/build`;
 
 			fs.writeFileSync('package.json', JSON.stringify(json, null, 2));
 			fs.writeFileSync('index.tsx', init_code);
