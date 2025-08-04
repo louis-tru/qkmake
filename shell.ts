@@ -19,7 +19,7 @@ const host_os = process.platform == 'darwin' ? 'mac': process.platform;
 
 function tryClean() {
 	if (opts.clean) { // clean
-		fs.rm_r_sync(cwd + '/out/all');
+		fs.rm_r_sync(cwd + '/out/build');
 		fs.rm_r_sync(cwd + '/out/small');
 		fs.rm_r_sync(cwd + '/out/tsbuildinfo');
 	}
@@ -76,29 +76,29 @@ else if (cmd == 'open') {
 else if (cmd == 'start') {
 	(async function() {
 		const arg0 = args[0] || '';
-		const all = `${path.cwd()}/out/all`;
+		const build = `${path.cwd()}/out/build`;
 		if (arg0 == 'web') {
 			args[0] = `http://${(getLocalNetworkHost()[0] || '127.0.0.1')}:1026`;
 		}
 		else if (arg0) {
 			if (arg0[0] == '-') {
-				args.unshift(all);
+				args.unshift(build);
 			} else {
 				if (path.resolve(arg0) == path.cwd()) {
-					args[0] = all;
+					args[0] = build;
 				}
 			}
 		} else {
-			args.unshift(all);
+			args.unshift(build);
 		}
-		if (args[0] == all) {
-			if (!fs.existsSync(`${cwd}/out/all/package.json`) ) {
+		if (args[0] == build) {
+			if (!fs.existsSync(`${cwd}/out/build/package.json`) ) {
 				await new Build(cwd, cwd + '/out').build();
 			}
 		}
 		console.log(`Start running...`);
-		console.log(`quark`, ...args);
-		await spawn('quark', [...args], {
+		console.log(`quark`, '--pkgz-off=1', ...args);
+		await spawn('quark', ['--pkgz-off=1', ...args], {
 			onData:()=>'',
 			onError:()=>'',
 			stdout: process.stdout,

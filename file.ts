@@ -99,7 +99,7 @@ export default class File extends HttpService {
 
 	package_json({pathname}: {pathname:string}) {
 		let root = this.server.root[0];
-		let [json_path] = ['out/all','']
+		let [json_path] = ['out/build','']
 			.map(e=>resolveLocal(root, e, pathname))
 			.filter(fs.existsSync);
 		if (!json_path) {
@@ -133,7 +133,7 @@ export default class File extends HttpService {
 			res.end(data);
 		} else {
 			let root = this.server.root[0];
-			let [json_path] = ['out/all', '']
+			let [json_path] = ['out/build', '']
 				.map(e=>resolveLocal(root, e, pathname))
 				.filter(fs.existsSync);
 			if (!json_path) {
@@ -146,7 +146,7 @@ export default class File extends HttpService {
 
 	siteFile({pathname}: {pathname:string}) {
 		let root = this.server.root[0];
-		let [s] = ['out/all','']
+		let [s] = ['out/build','']
 			.map(e=>resolveLocal(root, e, pathname))
 			.filter(fs.existsSync);
 		if (s && fs.statSync(s).isFile()) {

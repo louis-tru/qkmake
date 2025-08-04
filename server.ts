@@ -85,9 +85,9 @@ export async function start(runPoint: string, opts?: Opt) {
 	fs.writeFileSync(`${src}/.tsconfig.json`, JSON.stringify(tsconfig, null, 2));
 
 	let sys = Object.create(ts.sys) as (typeof ts.sys);
-	let out_all = `${src}/out/all/`;
-	let pkg_json = parse_json_file(`${out_all}package.json`);
-	let {filesHash,pkgzFiles} = parse_json_file(`${out_all}versions.json`);
+	let out_build = `${src}/out/build/`;
+	let pkg_json = parse_json_file(`${out_build}package.json`);
+	let {filesHash,pkgzFiles} = parse_json_file(`${out_build}versions.json`);
 	let allFiles = Object.keys({...pkgzFiles, ...filesHash});
 
 	File.versions_json = {filesHash, pkgzFiles};
@@ -100,8 +100,8 @@ export async function start(runPoint: string, opts?: Opt) {
 	}
 
 	function saveToLocal() {
-		fs.writeFileSync(`${out_all}versions.json`, JSON.stringify({filesHash,pkgzFiles}, null, 2));
-		fs.writeFileSync(`${out_all}package.json`, JSON.stringify(pkg_json, null, 2));
+		fs.writeFileSync(`${out_build}versions.json`, JSON.stringify({filesHash,pkgzFiles}, null, 2));
+		fs.writeFileSync(`${out_build}package.json`, JSON.stringify(pkg_json, null, 2));
 	}
 
 	process.on('exit', saveToLocal);
@@ -109,7 +109,7 @@ export async function start(runPoint: string, opts?: Opt) {
 
 	sys.writeFile = function(pathname: string, data: string, writeByteOrderMark?: boolean) {
 		if (path.extname(pathname) == '.js') {
-			let fileName = pathname.substring(out_all.length);
+			let fileName = pathname.substring(out_build.length);
 			let hash = new Hash();
 			hash.update_str(data);
 			let hashStr = hash.digest32();
@@ -131,7 +131,7 @@ export async function start(runPoint: string, opts?: Opt) {
 	let watchCompilerHost = ts.createWatchCompilerHost(
 		`${src}/.tsconfig.json`,
 		{
-			outDir: `${src}/out/all`,
+			outDir: `${src}/out/build`,
 			declarationDir: `${src}/out/types`,
 			declaration: true,
 		},
