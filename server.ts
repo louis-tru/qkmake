@@ -113,18 +113,21 @@ export async function start(runPoint: string, opts?: Opt) {
 			let fileName = pathname.substring(out_build.length);
 			let hash = new Hash();
 			hash.update_str(data);
-			let hashStr = hash.digest32();
-			filesHash[fileName] = hashStr;
+			let oldHash = filesHash[fileName] || pkgzFiles[fileName];
+			let newHash = hash.digest32();
 
-			hash = new Hash();
-			for (let file of allFiles)
-				hash.update_str(filesHash[file] || pkgzFiles[file]);
-			pkg_json.hash = hash.digest128();
-			delaySaveToLocal();
+			if (oldHash != newHash) {
+				filesHash[fileName] = newHash;
+				hash = new Hash();
+				for (let file of allFiles)
+					hash.update_str(filesHash[file] || pkgzFiles[file]);
+				pkg_json.hash = hash.digest128();
+				delaySaveToLocal();
 
-			// Emit notification to debug clients
-			Message.triggerClients(ser, 'FileChanged', { fileName, hash: hashStr });
-			console.log('Changed:', fileName);
+				// Emit notification to debug clients
+				Message.triggerClients(ser, 'FileChanged', { name: fileName, hash: newHash });
+				console.log('Changed:', fileName);
+			}
 		}
 		ts.sys.writeFile(pathname, data, writeByteOrderMark);
 	}
