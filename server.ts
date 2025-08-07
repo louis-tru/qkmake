@@ -92,6 +92,7 @@ export async function start(runPoint: string, opts?: Opt) {
 
 	File.versions_json = {filesHash, pkgzFiles};
 	File.package_hash = pkg_json.hash || '';
+	File.watching = true;
 
 	let delaySaveId: NodeJS.Timeout;
 	function delaySaveToLocal() {

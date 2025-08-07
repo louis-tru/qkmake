@@ -38,6 +38,7 @@ export default class File extends HttpService {
 
 	static package_hash: string = '';
 	static versions_json?: object;
+	static watching: boolean = false;
 
 	async onAction(info: any) {
 		let log = 'Request: ' + this.url;
@@ -113,6 +114,7 @@ export default class File extends HttpService {
 		const json = JSON.parse(fs.readFileSync(json_path, 'utf8'));
 		json.hash = File.package_hash;
 		json.pkgzHash = ''; // clear pkgz flag
+		json.watching = File.watching;
 		let data = JSON.stringify(json, null, 2);
 		let res = this.response;
 		this.setDefaultHeader();
