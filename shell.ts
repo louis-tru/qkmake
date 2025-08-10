@@ -17,22 +17,7 @@ const def_opts = argument.defOpts;
 const cwd = process.cwd();
 const host_os = process.platform == 'darwin' ? 'mac': process.platform;
 
-function tryClean() {
-	if (opts.clean) { // clean
-		fs.rm_r_sync(cwd + '/out/build');
-		fs.rm_r_sync(cwd + '/out/small');
-		fs.rm_r_sync(cwd + '/out/tsbuildinfo');
-	}
-}
-
-def_opts(['help','h'], 0,     '--help,-h      Print help info');
-def_opts(['port','p'], 1026,  '--port=PORT,-p PORT Run quark debugger server port [{0}]');
-def_opts(['clean','c'], 0,    '--clean,-c     First clean build directory [{0}]');
-def_opts(['debug','d'], '127.0.0.1:9229',
-															'--debug,-d     Debug address and prot [{0}]');
-def_opts(['brk','b'],   0,    '--brk,-b       Startup as debugger break [{0}]');
-
-if (opts.help) {
+function printHelp() {
 	console.log('Usage: qkmake Command [OS] [Option]');
 	console.log('Command:');
 	console.log('  init    [examples]');
@@ -51,9 +36,30 @@ if (opts.help) {
 	console.log('  qkmake init');
 	console.log('  qkmake build  -c');
 	console.log('  qkmake export ios');
-	console.log('  qkmake open   ios');
 	console.log('  qkmake start  .');
+	console.log('  qkmake start  --debug --brk --watch');
 	console.log('  qkmake watch');
+	console.log('  qkmake open   ios');
+}
+
+function tryClean() {
+	if (opts.clean) { // clean
+		fs.rm_r_sync(cwd + '/out/build');
+		fs.rm_r_sync(cwd + '/out/small');
+		fs.rm_r_sync(cwd + '/out/tsbuildinfo');
+	}
+}
+
+def_opts(['help','h'], 0,     '--help,-h      Print help info');
+def_opts(['port','p'], 1026,  '--port=PORT,-p PORT Run quark debugger server port [{0}]');
+def_opts(['clean','c'], 0,    '--clean,-c     First clean build directory [{0}]');
+def_opts(['debug','d'], '127.0.0.1:9229',
+															'--debug,-d     Debug address and prot [{0}]');
+def_opts(['brk','b'],   0,    '--brk,-b       Startup as debugger break [{0}]');
+def_opts(['watch'],     0,    `--watch        Startup as watch mode [{0}], it's have to be enabled at the debug server`);
+
+if (opts.help) {
+	printHelp();
 }
 else if (cmd == 'export') {
 	tryClean();
@@ -77,12 +83,17 @@ else if (cmd == 'start') {
 	(async function() {
 		const arg0 = args[0] || '';
 		const build = `${path.cwd()}/out/build`;
+		const web = `http://${(getLocalNetworkHost()[0] || '127.0.0.1')}:1026`;
 		if (arg0 == 'web') {
-			args[0] = `http://${(getLocalNetworkHost()[0] || '127.0.0.1')}:1026`;
+			args[0] = web;
 		}
 		else if (arg0) {
 			if (arg0[0] == '-') {
-				args.unshift(build);
+				if (opts.watch) {
+					args.unshift(web);
+				} else {
+					args.unshift(build);
+				}
 			} else {
 				if (path.resolve(arg0) == path.cwd()) {
 					args[0] = build;
@@ -106,15 +117,17 @@ else if (cmd == 'start') {
 		});
 	})();
 }
-else if (cmd == 'watch' || !cmd) {
+else if (cmd == 'watch') {
 	(async function() {
 		tryClean();
-		if (!fs.existsSync(`${cwd}/out/all/package.json`) ) {
+		if (!fs.existsSync(`${cwd}/out/build/package.json`) ) {
 			await new Build(cwd, cwd + '/out').build();
 		}
 		// run web server
 		await start(cwd, {server: { port: argument.options.port, root: `${cwd}` }});
 	})();
+} else {
+	printHelp();
 }
 
 export default {};
