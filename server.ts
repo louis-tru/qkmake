@@ -40,6 +40,8 @@ import { saerchModules, parse_json_file, Hash } from './build';
 import * as fs from 'fs';
 import * as ts from 'typescript';
 import path from 'qktool/path';
+import util from 'qktool/util';
+
 
 process.on('unhandledRejection', (err, promise) => {
 	throw err;
@@ -108,8 +110,19 @@ export async function start(runPoint: string, opts?: Opt) {
 	process.on('exit', saveToLocal);
 	process.on('SIGINT', ()=>process.exit());
 
-	sys.writeFile = function(pathname: string, data: string, writeByteOrderMark?: boolean) {
+	let compileErrorFile = '';
+
+	sys.writeFile = async function(pathname: string, data: string, writeByteOrderMark?: boolean) {
+		ts.sys.writeFile(pathname, data, writeByteOrderMark);
 		if (path.extname(pathname) == '.js') {
+			await util.sleep(200); // wait for compile finish
+			if (compileErrorFile) {
+				const name =  pathname.substring(out_build.length-1, pathname.length - 2);
+				if (compileErrorFile.indexOf(name) == 0) {
+					compileErrorFile = '';
+					return;
+				}
+			}
 			let fileName = pathname.substring(out_build.length);
 			let hash = new Hash();
 			hash.update_str(data);
@@ -129,7 +142,6 @@ export async function start(runPoint: string, opts?: Opt) {
 				console.log('Changed:', fileName);
 			}
 		}
-		ts.sys.writeFile(pathname, data, writeByteOrderMark);
 	}
 
 	let watchCompilerHost = ts.createWatchCompilerHost(
@@ -143,7 +155,8 @@ export async function start(runPoint: string, opts?: Opt) {
 		ts.createEmitAndSemanticDiagnosticsBuilderProgram,
 		(diagnostic) => {
 			if (diagnostic.file) {
-				console.log('Error: from', diagnostic.file!.fileName.substring(src.length));
+				compileErrorFile = diagnostic.file.fileName.substring(src.length);
+				console.log('Error: from', compileErrorFile);
 			}
 			console.log('  ', diagnostic.messageText);
 		},
