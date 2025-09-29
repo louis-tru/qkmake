@@ -704,7 +704,7 @@ export default class Export {
 
 		const copy_to_usr = (source: string)=>{
 			const target = `${self.output}/usr/${path.basename(source)}`;
-			fs.copySync(source, target, { replace: false });
+			fs.copySync(source, target, { replace: true });
 			return path.relative(self.output, target);
 		};
 

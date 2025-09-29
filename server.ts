@@ -135,6 +135,7 @@ export async function start(runPoint: string, opts?: Opt) {
 				for (let file of allFiles)
 					hash.update_str(filesHash[file] || pkgzFiles[file]);
 				pkg_json.hash = hash.digest128();
+				File.package_hash = pkg_json.hash;
 				delaySaveToLocal();
 
 				// Emit notification to debug clients
