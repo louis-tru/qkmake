@@ -35,7 +35,7 @@ import path from 'qktool/path';
 import {syscall,execSync,exec} from 'qktool/syscall';
 import Build, {
 	PackageJson,native_source,
-	native_header,parse_json_file, resolveLocal, saerchModules
+	native_header,parse_json_file, resolveLocal, searchModules
 } from './build';
 import { getLocalNetworkHost } from 'qktool/network_host';
 
@@ -99,12 +99,13 @@ class Package {
 		if (self.is_app) {
 			let name = self.outputName;
 			let json = self.json;
-			let inspect = ' --inspect=0.0.0.0:9229';
-			let start_argv_debug = 'http://' + getLocalNetworkHost()[0] + ':1026/' + inspect;
+			// let debug = ' --inspect=0.0.0.0:9229';
+			let debug = ' --debug=0.0.0.0:9229';
+			let start_argv_debug = 'http://' + getLocalNetworkHost()[0] + ':1026/' + debug;
 			if (json.skipInstall) {
 				console.warn( 'skipInstall params May lead to Application', name, ' to start incorrectly' );
 			}
-			return [start_argv_debug, `.${inspect}`, '.'];
+			return [start_argv_debug, `.${debug}`, '.'];
 		}
 		return [] as string[];
 	}
@@ -224,7 +225,7 @@ class Package {
 		let skip_source = [
 			'out',
 			'project',
-			saerchModules,
+			searchModules,
 			'package-lock.json',
 			`${self.json.name}.gyp`
 		];
@@ -251,7 +252,7 @@ class Package {
 					self.sources.push( relative_source + '/' + pathname );
 				}
 			} else if ( stat.isDirectory() ) {
-				if (name == saerchModules) {
+				if (name == searchModules) {
 					let dirname = source + '/' + pathname;
 					fs.listSync(dirname, function(stat, pathname) {
 						if (pathname && stat.isDirectory() && stat.name != '@types')

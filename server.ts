@@ -36,7 +36,7 @@ import Message from './message';
 import {ServerImpl,Options} from 'qktool/server';
 import * as remote_log from './remote_log';
 import {getLocalNetworkHost} from 'qktool/network_host';
-import { saerchModules, parse_json_file, Hash } from './build';
+import { searchModules, parse_json_file, Hash } from './build';
 import * as fs from 'fs';
 import * as ts from 'typescript';
 import path from 'qktool/path';
@@ -82,7 +82,7 @@ export async function start(runPoint: string, opts?: Opt) {
 	let ser = start_server(opts);
 	let tsconfig = {
 		extends: `./tsconfig.json`, 
-		exclude: [saerchModules,'project','out','.git'],
+		exclude: [searchModules,'project','out','.git'],
 	};
 	fs.writeFileSync(`${src}/.tsconfig.json`, JSON.stringify(tsconfig, null, 2));
 

@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 
 import fs = require('qktool/fs');
-import Build from './build';
+import Build, {searchModules} from './build';
 import Export from './export';
 import {start} from './server';
 import * as argument from 'qktool/arguments';
-import {spawn,exec} from 'qktool/syscall';
+import {spawn} from 'qktool/syscall';
 import path from 'qktool/path';
 import { getLocalNetworkHost } from 'qktool/network_host';
 
@@ -47,6 +47,7 @@ function tryClean() {
 		fs.rm_r_sync(cwd + '/out/build');
 		fs.rm_r_sync(cwd + '/out/small');
 		fs.rm_r_sync(cwd + '/out/tsbuildinfo');
+		fs.rm_r_sync(cwd + `/${searchModules}/@types/quark`);
 	}
 }
 

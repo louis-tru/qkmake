@@ -37,7 +37,7 @@ import paths from './paths';
 import { exec } from 'qktool/syscall';
 const uglify = require('./uglify');
 
-export const saerchModules = 'node_modules';
+export const searchModules = 'node_modules';
 
 const base64_chars =
 	'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-'.split('');
@@ -132,7 +132,7 @@ const init_tsconfig = {
 		"out",
 		".git",
 		"project",
-		saerchModules,
+		searchModules,
 	]
 };
 
@@ -401,7 +401,7 @@ class Package {
 		// build tsc
 		if (fs.existsSync(source + '/tsconfig.json')) {
 			self._tsconfig_outDir = this._target_build;
-			let tsconfig = { extends: './tsconfig.json', exclude: [saerchModules,'out','.git'] };
+			let tsconfig = { extends: './tsconfig.json', exclude: [searchModules,'out','.git'] };
 			if (self === self._host.package) {
 				tsconfig.exclude.push('project');
 			}
@@ -590,12 +590,12 @@ class Package {
 		let self = this;
 		let source = resolveLocal(self._source, pathname);
 
-		if (basename == saerchModules) {
+		if (basename == searchModules) {
 			for (let stat of fs.listSync(source)) {
 				if (stat.name == '@types') continue;
 				let pkg_path = source + '/' + stat.name;
 				if (stat.isDirectory() && fs.existsSync( pkg_path + '/package.json')) {
-					let isRoot = self === self._host.package && pathname == saerchModules;
+					let isRoot = self === self._host.package && pathname == searchModules;
 					let json = parse_json_file(pkg_path + '/package.json');
 					let outname = isRoot ? json.name: `${json.name}@${json.version}`;
 
@@ -603,14 +603,14 @@ class Package {
 						// skipInstall value is inherit from parent ??
 						let skipInstall = self._skipInstall == 2 ? 2: (json.skipInstall || 0);
 						let pkg = new Package(self._host, pkg_path,
-								`${saerchModules}/${outname}`, outname, json, skipInstall);
+								`${searchModules}/${outname}`, outname, json, skipInstall);
 						pkg.build();
 						self._host.package.modules[outname] = pkg;
 					}
 
 					if (!isRoot) { // Ignore root module
 						let symlink = path.relative(`${self._target_build}/${pathname}`,
-							`${self._host.target_build}/${saerchModules}/${outname}`);
+							`${self._host.target_build}/${searchModules}/${outname}`);
 						let dir = self.modules_symlink[pathname];
 						if (!dir) 
 							self.modules_symlink[pathname] = dir = {};
@@ -727,8 +727,8 @@ export default class Build {
 
 		util.assert(r.code === 0, 'Installed fail');
 
-		if (!fs.existsSync(`${saerchModules}/@types/quark`)) { // copy @types
-			fs.cp_sync(paths.types, `${saerchModules}/@types`);
+		if (!fs.existsSync(`${searchModules}/@types/quark`)) { // copy @types
+			fs.cp_sync(paths.types, `${searchModules}/@types`);
 		}
 	}
 
@@ -759,7 +759,7 @@ export default class Build {
 
 	private genSaerchModules(pkg: Package, outModules: Dict<Dict<PackageJson>>) {
 		for (let [k,_pkg] of Object.entries(pkg.modules)) {
-			let dir = outModules[saerchModules] || (outModules[saerchModules] = {});
+			let dir = outModules[searchModules] || (outModules[searchModules] = {});
 			dir[k] = _pkg.json;
 			this.genSaerchModules(_pkg, (_pkg.json.modules = {}));
 		}
@@ -778,12 +778,12 @@ export default class Build {
 		util.assert(fs.readdirSync(process.cwd()).length == 0, 'Directory must be empty');
 
 		for (let pkg of paths.default_modules) {
-			let pathname = `${saerchModules}/${path.basename(pkg)}`;
+			let pathname = `${searchModules}/${path.basename(pkg)}`;
 			if (!fs.existsSync(pathname)) { // if no exists then copy
 				fs.cp_sync(pkg, pathname); // copy pkgs
 			}
 		}
-		fs.cp_sync(paths.types, `${saerchModules}/@types`);
+		fs.cp_sync(paths.types, `${searchModules}/@types`);
 
 		if (examples == 'examples') {
 			fs.cp_sync(paths.examples, this.source);
@@ -807,7 +807,7 @@ export default class Build {
 			fs.writeFileSync('tsconfig.json', JSON.stringify(init_tsconfig, null, 2));
 			fs.writeFileSync('.editorconfig', init_editorconfig);
 			fs.writeFileSync('.gitignore', ['.vscode', '*.DS_Store',
-				saerchModules, 'out', 'project', '*.gyp', '.tsconfig.json'].join('\n'));
+				searchModules, 'out', 'project', '*.gyp', '.tsconfig.json'].join('\n'));
 		}
 	}
 
