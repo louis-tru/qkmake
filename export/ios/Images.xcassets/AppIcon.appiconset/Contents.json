@@ -203,7 +203,13 @@
 			"idiom" : "car",
 			"filename" : "ic_40x40x3.png",
 			"scale" : "1x"
-		}
+		},
+    {
+      "filename" : "ic_1024x1024.png",
+      "idiom" : "ios-marketing",
+      "scale" : "1x",
+      "size" : "1024x1024"
+    }
 	],
 	"info" : {
 		"version" : 1,
