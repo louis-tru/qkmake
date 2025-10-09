@@ -99,6 +99,7 @@ const skip_files = [
 const init_tsconfig = {
 	"compileOnSave": true,
 	"compilerOptions": {
+		"noEmitHelpers": true,
 		"module": "commonjs",
 		"target": "ES2018",
 		"moduleResolution": "node",
@@ -401,7 +402,15 @@ class Package {
 		// build tsc
 		if (fs.existsSync(source + '/tsconfig.json')) {
 			self._tsconfig_outDir = this._target_build;
-			let tsconfig = { extends: './tsconfig.json', exclude: [searchModules,'out','.git'] };
+			let tsconfig = {
+				extends: './tsconfig.json',
+				exclude: [searchModules,'out','.git'],
+				compilerOptions: {
+					outDir: self._target_build,
+					declarationDir: self._target_types,
+					declaration: true,
+				},
+			};
 			if (self === self._host.package) {
 				tsconfig.exclude.push('project');
 			}
@@ -412,8 +421,9 @@ class Package {
 					tsBuildInfoFile: resolveLocal(source, tsBuildInfoFile));
 			}
 			fs.writeFileSync(`${source}/.tsconfig.json`, JSON.stringify(tsconfig, null, 2));
-			exec_cmd(`cd ${source} && ${__dirname}/node_modules/.bin/tsc --project .tsconfig.json \
-				--outDir ${self._tsconfig_outDir} --declarationDir ${this._target_types} --declaration`);
+			// exec_cmd(`cd ${source} && ${__dirname}/node_modules/.bin/tsc -project .tsconfig.json`);
+			// exec_cmd(`cd ${source} && ${process.execPath} --inspect-brk=0.0.0.0:9228 ${__dirname}/qktsc -project .tsconfig.json`);
+			exec_cmd(`cd ${source} && ${process.execPath} ${__dirname}/qktsc -project .tsconfig.json`);
 			fs.unlinkSync(`${source}/.tsconfig.json`);
 		}
 

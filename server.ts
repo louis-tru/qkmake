@@ -41,7 +41,7 @@ import * as fs from 'fs';
 import * as ts from 'typescript';
 import path from 'qktool/path';
 import util from 'qktool/util';
-
+import transformer from "./inject_async_wrapper";
 
 process.on('unhandledRejection', (err, promise) => {
 	throw err;
@@ -167,6 +167,19 @@ export async function start(runPoint: string, opts?: Opt) {
 			}
 		}
 	);
+
+	const origCreateProgram = watchCompilerHost.createProgram;
+
+	watchCompilerHost.createProgram = (rootNames, options, host, oldProgram) => {
+		const program = origCreateProgram(rootNames, options, host, oldProgram);
+		const origEmit = program.emit;
+		program.emit = (targetSourceFile, writeFile, cancellationToken, emitOnlyDts, customTransformers) => {
+			const newTransformers = { before: [transformer()], ...customTransformers };
+			return origEmit.call(program, targetSourceFile, writeFile, cancellationToken, emitOnlyDts, newTransformers);
+		};
+		return program;
+	};
+
 	ts.createWatchProgram(watchCompilerHost);
 
 	setTimeout(()=>console.log('Watching files change:'));
