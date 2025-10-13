@@ -336,23 +336,27 @@ class Package {
 	private get_skip_files(pkg_json: PkgJson, name: string) {
 		var rev: string[] = [];
 
-		if (pkg_json.skip) {
-			if (Array.isArray(pkg_json.skip)) {
-				rev = pkg_json.skip;
-			} else {
-				rev = [
-					String(pkg_json.skip)
-				];
-			}
-			delete pkg_json.skip;
-		}
-
+		// default skip files
 		rev.push('tsconfig.json');
 		rev.push('binding.gyp');
 		rev.push('versions.json');
 		rev.push('package-lock.json');
 		rev.push('out');
 		rev.push('project');
+
+		if (pkg_json.skip) {
+			for (const ex of Array.isArray(pkg_json.skip) ? pkg_json.skip: [ String(pkg_json.skip) ]) {
+				if (rev.indexOf(ex) == -1)
+					rev.push(ex);
+			}
+			delete pkg_json.skip;
+		}
+		if (fs.existsSync(this._source + '/tsconfig.json')) {
+			for (const ex of parse_json_file(this._source + '/tsconfig.json').exclude || []) {
+				if (rev.indexOf(ex) == -1)
+					rev.push(ex);
+			}
+		}
 
 		return rev;
 	}
