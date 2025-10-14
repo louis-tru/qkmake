@@ -39,7 +39,7 @@ import {getLocalNetworkHost} from 'qktool/network_host';
 import { searchModules, parse_json_file, Hash } from './build';
 import * as fs from 'fs';
 import * as ts from 'typescript';
-import path from 'qktool/path';
+import uri from 'qktool/uri';
 import util from 'qktool/util';
 import transformer from "./inject_async_wrapper";
 
@@ -78,7 +78,7 @@ export default function start_server(options?: Opt) {
 }
 
 export async function start(runPoint: string, opts?: Opt) {
-	let src = path.classicPath(path.resolve(runPoint));
+	let src = uri.classicPath(uri.resolve(runPoint));
 	let ser = start_server(opts);
 	let tsconfig = {
 		extends: `./tsconfig.json`, 
@@ -114,7 +114,7 @@ export async function start(runPoint: string, opts?: Opt) {
 
 	sys.writeFile = async function(pathname: string, data: string, writeByteOrderMark?: boolean) {
 		ts.sys.writeFile(pathname, data, writeByteOrderMark);
-		if (path.extname(pathname) == '.js') {
+		if (uri.extname(pathname) == '.js') {
 			await util.sleep(200); // wait for compile finish
 			if (compileErrorFile) {
 				const name =  pathname.substring(out_build.length-1, pathname.length - 2);

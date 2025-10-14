@@ -31,7 +31,7 @@
 import util from 'qktool/util';
 import paths from './paths';
 import * as fs from 'qktool/fs';
-import path from 'qktool/path';
+import uri from 'qktool/uri';
 import {syscall,execSync,exec} from 'qktool/syscall';
 import Build, {
 	PackageJson,native_source,
@@ -178,7 +178,7 @@ class Package {
 				self.dependencies_recursion.push(pkg.outputName);
 			}
 			for (let file of fs.readdirSync(`${self.host.output}/small`)) {
-				if (path.basename(file).indexOf('run') != 0) { // skip run* files
+				if (uri.basename(file).indexOf('run') != 0) { // skip run* files
 					if (skip_resources.indexOf(file) == -1)
 						self.bundle_resources.push(`small/${file}`);
 				}
@@ -206,7 +206,7 @@ class Package {
 		let self = this;
 		let host = this.host;
 		let source = this.source;
-		let relative_source = path.relative(host.output, source);
+		let relative_source = uri.relative(host.output, source);
 
 		// add native and source
 		if ( fs.existsSync(source + '/binding.gyp') ) {
@@ -215,7 +215,7 @@ class Package {
 				let target = targets[0];
 				let target_name = target.target_name;
 				if (target_name) {
-					self.dependencies.push(path.relative(host.source, source) + '/binding.gyp:' + target_name);
+					self.dependencies.push(uri.relative(host.source, source) + '/binding.gyp:' + target_name);
 					self._binding_gyp = true;
 				}
 			}
@@ -238,7 +238,7 @@ class Package {
 			if (skip_source.indexOf(name) != -1)
 				return true;
 			if ( stat.isFile() ) {
-				let extname = path.extname(name).toLowerCase();
+				let extname = uri.extname(name).toLowerCase();
 				if (native_source.indexOf(extname) != -1) {
 					if (!self._binding_gyp) {
 						self._binding = true;
@@ -478,7 +478,7 @@ export default class Export {
 			return json || (json = parse_json_file(source_path + '/package.json')) as PkgJson;
 		};
 		let outputName = isFullname ?
-			getPkg().name + '@' + getPkg().version: path.basename(source_path);
+			getPkg().name + '@' + getPkg().version: uri.basename(source_path);
 		let pkg = self.outputs[outputName];
 		if (!pkg) {
 			pkg = new Package(self, source_path, outputName, getPkg(), isApp);
@@ -496,7 +496,7 @@ export default class Export {
 		let source = self.source;
 		let out = self.output;
 		let style = 'make';
-		let gen_out = path.relative(source, self.proj_out);
+		let gen_out = uri.relative(source, self.proj_out);
 		let proj_path: string[];
 
 		if (os == 'ios' || os == 'mac') {
@@ -507,7 +507,7 @@ export default class Export {
 			style = 'cmake-linux';
 			proj_path = [ 'Release','Debug']
 				.map(e=>`${out}/android/${proj_name}/out/${e}/CMakeLists.txt`);
-			gen_out = path.relative(source, `${out}/android/${proj_name}`);
+			gen_out = uri.relative(source, `${out}/android/${proj_name}`);
 		}
 		else if (os == 'linux') {
 			style = 'make-linux';
@@ -526,7 +526,7 @@ export default class Export {
 		// console.log('paths.includes_gypi', source, paths.includes_gypi);
 
 		paths.includes_gypi.forEach(function(str) {
-			include_gypi += ' -I' + path.relative(source, str);
+			include_gypi += ' -I' + uri.relative(source, str);
 		});
 
 		// console.log('paths.includes_gypi', paths.includes_gypi);
@@ -534,7 +534,7 @@ export default class Export {
 		let shell =
 			`${gyp_exec} ` +
 			`-f ${style} --generator-output="${gen_out}" ` +
-			`-Goutput_dir="${path.relative(source, out)}" ` +
+			`-Goutput_dir="${uri.relative(source, out)}" ` +
 			`-Gstandalone ${include_gypi} ` +
 			`${proj_name}.gyp ` +
 			`--depth=. `
@@ -563,7 +563,7 @@ export default class Export {
 			if (pkg.is_app) {
 				includes.push(...pkg.includes, pkg.gypi_path);
 				includes = filter_repeat(includes).map(function(pathname) {
-					return path.relative(source, pathname);
+					return uri.relative(source, pathname);
 				});
 				fs.writeFileSync( pkg.gypi_path, JSON.stringify(pkg.gen(), null, 2));
 			}
@@ -573,7 +573,7 @@ export default class Export {
 		let gyp = 
 		{
 			'variables': {
-				'libquark': [ quark_gyp ? path.relative(source, quark_gyp) + ':libquark': 'libquark' ],
+				'libquark': [ quark_gyp ? uri.relative(source, quark_gyp) + ':libquark': 'libquark' ],
 			},
 			'includes': includes,
 		};
@@ -652,7 +652,7 @@ export default class Export {
 			//android.externalNativeBuild.cmake.path = file("CMakeLists.txt")
 			str = str.replace(/^.*android\.externalNativeBuild\.cmake\..+$/mg, '');
 			if (pkg.native) {
-				let cmake = path.relative(`${app}`, out[0]);
+				let cmake = uri.relative(`${app}`, out[0]);
 				str += `\nandroid.externalNativeBuild.cmake.path = "${cmake}"`;
 				str += `\nandroid.externalNativeBuild.cmake.version = "3.22.1"`;
 			}
@@ -675,8 +675,8 @@ export default class Export {
 			// let output = self.output;
 			// let android_assets = `${app}/src/main/assets`;
 			// for (let res of pkg.bundle_resources) {
-			// 	let basename = path.basename(res);
-			// 	let source = path.relative(android_assets, output + '/' + res);
+			// 	let basename = uri.basename(res);
+			// 	let source = uri.relative(android_assets, output + '/' + res);
 			// 	if (!fs.existsSync(output + '/' + res))
 			// 		return;
 			// 	let target = `${android_assets}/${basename}`;
@@ -704,15 +704,15 @@ export default class Export {
 		}
 
 		const copy_to_usr = (source: string)=>{
-			const target = `${self.output}/usr/${path.basename(source)}`;
+			const target = `${self.output}/usr/${uri.basename(source)}`;
 			fs.copySync(source, target, { replace: true });
-			return path.relative(self.output, target);
+			return uri.relative(self.output, target);
 		};
 
 		if (paths.librarys[os]) {
 			paths.librarys[os].forEach(copy_to_usr);
 			for (const it of paths.librarys[os]) {
-				fs.chmod_r(`${self.output}/usr/${path.basename(it)}`, 0o755, ()=>{});
+				fs.chmod_r(`${self.output}/usr/${uri.basename(it)}`, 0o755, ()=>{});
 			}
 		}
 		paths.includes.forEach(copy_to_usr);

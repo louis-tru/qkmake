@@ -32,7 +32,7 @@ import util from 'qktool';
 import * as fs from 'qktool/fs';
 import * as child_process from 'child_process';
 import keys from 'qktool/keys';
-import path from 'qktool/path';
+import uri from 'qktool/uri';
 import paths from './paths';
 import { exec } from 'qktool/syscall';
 const uglify = require('./uglify');
@@ -138,7 +138,7 @@ const init_tsconfig = {
 };
 
 export function resolveLocal(...args: string[]) {
-	return path.classicPath(path.resolve(...args));
+	return uri.classicPath(uri.resolve(...args));
 }
 
 export function parse_json_file(filename: string, strict?: boolean) {
@@ -178,7 +178,7 @@ function exec_cmd(cmd: string) {
 }
 
 function new_zip(cwd: string, sources: string[], target: string) {
-	console.log('Out ', path.basename(target));
+	console.log('Out ', uri.basename(target));
 	//console.log('; zip ' + target + ' ' + sources.join(' '))
 	exec_cmd('cd ' + cwd + '; rm -r ' + target + '; zip ' + target + ' ' + sources.join(' '));
 }
@@ -188,7 +188,7 @@ function unzip(source: string, target: string) {
 }
 
 function copy_file(source: string, target: string) {
-	fs.mkdirpSync( path.dirname(target) ); // First make directory
+	fs.mkdirpSync( uri.dirname(target) ); // First make directory
 
 	var rfd  = fs.openSync(source, 'r');
 	var wfd  = fs.openSync(target, 'w');
@@ -421,7 +421,7 @@ class Package {
 			let json = parse_json_file(source + '/tsconfig.json');
 			let tsBuildInfoFile = json.compilerOptions && json.compilerOptions.tsBuildInfoFile;
 			if (tsBuildInfoFile) {
-				fs.rm_r_sync(path.isAbsolute(tsBuildInfoFile) ?
+				fs.rm_r_sync(uri.isAbsolute(tsBuildInfoFile) ?
 					tsBuildInfoFile: resolveLocal(source, tsBuildInfoFile));
 			}
 			fs.writeFileSync(`${source}/.tsconfig.json`, JSON.stringify(tsconfig, null, 2));
@@ -491,7 +491,7 @@ class Package {
 		}
 
 		if (source != target || self._enable_minify) {
-			fs.mkdirpSync(path.dirname(target)); // First create directory
+			fs.mkdirpSync(uri.dirname(target)); // First create directory
 			fs.writeFileSync(target, data.value, 'utf8');
 		}
 
@@ -502,7 +502,7 @@ class Package {
 		let self = this;
 		let target_build  = resolveLocal(self._target_build, pathname);
 		let target_small  = resolveLocal(self._target_small, pathname);
-		fs.mkdirpSync( path.dirname(target_build) ); // First create directory
+		fs.mkdirpSync( uri.dirname(target_build) ); // First create directory
 		fs.writeFileSync(target_build, content, 'utf8');
 		let hash = new Hash();
 		hash.update_str(content);
@@ -525,7 +525,7 @@ class Package {
 		let source        = resolveLocal(self._source, pathname);
 		let target_small  = resolveLocal(self._target_small, pathname);
 		let target_build  = resolveLocal(self._target_build, pathname);
-		let extname       = path.extname(pathname).toLowerCase();
+		let extname       = uri.extname(pathname).toLowerCase();
 		let is_detach     = false;
 		var hash          = '';
 
@@ -580,7 +580,7 @@ class Package {
 					console.error('Parse keys file error: ' + source);
 					throw err;
 				}
-				fs.mkdirpSync(path.dirname(target_build)); // First create directory
+				fs.mkdirpSync(uri.dirname(target_build)); // First create directory
 				fs.writeFileSync(target_build, keys.stringify(data), 'utf8');
 				break;
 			default:
@@ -623,7 +623,7 @@ class Package {
 					}
 
 					if (!isRoot) { // Ignore root module
-						let symlink = path.relative(`${self._target_build}/${pathname}`,
+						let symlink = uri.relative(`${self._target_build}/${pathname}`,
 							`${self._host.target_build}/${searchModules}/${outname}`);
 						let dir = self.modules_symlink[pathname];
 						if (!dir) 
@@ -678,7 +678,7 @@ class Package {
 		if (!pkg_json.skipInstall) {
 			// copy to small
 			fs.cp_sync(target_build, target_small, { ignore_hide: this._host.ignore_hide, isCancel: s=>{
-				return path.extname(s) == `.pkgz`; // ignore copy .pkgz
+				return uri.extname(s) == `.pkgz`; // ignore copy .pkgz
 			} });
 		}
 	}
@@ -792,7 +792,7 @@ export default class Build {
 		util.assert(fs.readdirSync(process.cwd()).length == 0, 'Directory must be empty');
 
 		for (let pkg of paths.default_modules) {
-			let pathname = `${searchModules}/${path.basename(pkg)}`;
+			let pathname = `${searchModules}/${uri.basename(pkg)}`;
 			if (!fs.existsSync(pathname)) { // if no exists then copy
 				fs.cp_sync(pkg, pathname); // copy pkgs
 			}
@@ -802,7 +802,7 @@ export default class Build {
 		if (examples == 'examples') {
 			fs.cp_sync(paths.examples, this.source);
 		} else {
-			let name = path.basename(process.cwd()) || 'qkproj';
+			let name = uri.basename(process.cwd()) || 'qkproj';
 			let json = {
 				name,
 				app: name[0].toUpperCase() + name.substring(1),

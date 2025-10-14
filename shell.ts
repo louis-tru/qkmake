@@ -6,7 +6,7 @@ import Export from './export';
 import {start} from './server';
 import * as argument from 'qktool/arguments';
 import {spawn} from 'qktool/syscall';
-import path from 'qktool/path';
+import uri from 'qktool/uri';
 import { getLocalNetworkHost } from 'qktool/network_host';
 
 const args = process.argv.slice(2);
@@ -83,7 +83,7 @@ else if (cmd == 'open') {
 else if (cmd == 'start') {
 	(async function() {
 		const arg0 = args[0] || '';
-		const build = `${path.cwd()}/out/build`;
+		const build = `${uri.cwd()}/out/build`;
 		const web = `http://${(getLocalNetworkHost()[0] || '127.0.0.1')}:1026`;
 		if (arg0 == 'web') {
 			args[0] = web;
@@ -96,7 +96,7 @@ else if (cmd == 'start') {
 					args.unshift(build);
 				}
 			} else {
-				if (path.resolve(arg0) == path.cwd()) {
+				if (uri.resolve(arg0) == uri.cwd()) {
 					args[0] = build;
 				}
 			}

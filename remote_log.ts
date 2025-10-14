@@ -29,7 +29,7 @@
  * ***** END LICENSE BLOCK ***** */
 
 import * as http from 'http';
-import path, {URL} from 'qktool/path';
+import uri, {URL} from 'qktool/uri';
 import * as querystring from 'querystring';
 var remote_log_uri: URL | null = null;
 
@@ -60,16 +60,16 @@ export function remote_log_print_with_post(data: Dict<string>) {
 }
 
 export function remote_log_print(log: string) {
-	var uri = remote_log_uri;
-	if ( uri ) {
-		var url = path.resolve(uri.href, '/$console/log');
+	var log_uri = remote_log_uri;
+	if ( log_uri ) {
+		var url = uri.resolve(log_uri.href, '/$console/log');
 		http.get(url + '/' + log, function() { });
 	}
 }
 
 export function set_remote_log_address(address: string) {
 	if ( /^https?:\/\/[^\/]+/.test(String(address)) ) {
-		remote_log_uri = new path.URL(String(address));
+		remote_log_uri = new uri.URL(String(address));
 	} else {
 		remote_log_uri = null;
 	}
