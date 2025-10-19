@@ -254,6 +254,7 @@ export class Hash {
 		var hash = this.hash;
 		for (var i = input.length - 1; i > -1; i--) {
 			hash += (hash << 5n) + BigInt(input.charCodeAt(i));
+			hash &= 0xFFFFFFFFFFFFFFFFFFFFFFFFn;
 		}
 		this.hash = hash & 0xFFFFFFFFFFFFFFFFFFFFFFFFn; // use 128bit
 	}
@@ -262,6 +263,7 @@ export class Hash {
 		var hash = this.hash;
 		for (var i = input.length - 1; i > -1; i--) {
 			hash += (hash << 5n) + BigInt(input[i]);
+			hash &= 0xFFFFFFFFFFFFFFFFFFFFFFFFn; // use 128bit
 		}
 		this.hash = hash & 0xFFFFFFFFFFFFFFFFFFFFFFFFn;
 	}
@@ -270,6 +272,7 @@ export class Hash {
 		var hash = this.hash;
 		for (var i = len - 1; i > -1; i--) {
 			hash += (hash << 5n) + BigInt(input[i]);
+			hash &= 0xFFFFFFFFFFFFFFFFFFFFFFFFn;
 		}
 		this.hash = hash & 0xFFFFFFFFFFFFFFFFFFFFFFFFn;
 	}
