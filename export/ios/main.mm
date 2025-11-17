@@ -36,9 +36,14 @@ using namespace qk;
 
 Qk_Main() {
 #if DEBUG
+	// network startup, debug mode and watch mode.
+	// need start debug server, use command in qk project folder:
+	//   qkmake watch
 	return js::Start(ARGV_DEBUG);
+	// local startup, debug mode
 	// return js::Start(ARGV_DEBUG1);
 #else
+	// release mode, local startup
 	return js::Start(ARGV_RELEASE);
 #endif
 }

@@ -48,9 +48,14 @@ public class MainActivity extends Activity {
 
 	protected String startupArgv() {
 		if (isDebugger()) {
+			// network startup, debug mode and watch mode.
+			// need start debug server, use command in qk project folder:
+			//   qkmake watch
 			return ARGV_DEBUG;
+			// local startup, debug mode
 			// return ARGV_DEBUG1;
 		} else {
+			// release mode, local startup
 			return ARGV_RELEASE;
 		}
 	}

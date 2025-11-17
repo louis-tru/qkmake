@@ -101,7 +101,7 @@ class Package {
 			let json = self.json;
 			// let debug = ' --inspect=0.0.0.0:9229';
 			let debug = ' --debug=0.0.0.0:9229';
-			let start_argv_debug = 'http://' + getLocalNetworkHost()[0] + ':1026/' + debug;
+			let start_argv_debug = 'http://' + getLocalNetworkHost()[0] + ':1026/ --watch' + debug;
 			if (json.skipInstall) {
 				console.warn( 'skipInstall params May lead to Application', name, ' to start incorrectly' );
 			}
