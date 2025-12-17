@@ -123,6 +123,7 @@ const init_tsconfig = {
 		"jsxFactory": "Jsx",
 		// "typeRoots" : ["../libs"],
 		// "types" : ["node", "lodash", "express"],
+		"resolveJsonModule": true,
 		"incremental": true,
 		"tsBuildInfoFile": "./out/tsbuildinfo"
 	},
@@ -131,6 +132,7 @@ const init_tsconfig = {
 	],
 	"exclude": [
 		"out",
+		"deps",
 		".git",
 		"project",
 		searchModules,
@@ -823,8 +825,18 @@ export default class Build {
 			fs.writeFileSync('test.ts', init_code2);
 			fs.writeFileSync('tsconfig.json', JSON.stringify(init_tsconfig, null, 2));
 			fs.writeFileSync('.editorconfig', init_editorconfig);
-			fs.writeFileSync('.gitignore', ['.vscode', '*.DS_Store',
-				searchModules, 'out', 'project', '*.gyp', '.tsconfig.json'].join('\n'));
+			fs.writeFileSync('.gitignore', [
+				'.vscode',
+				'*.DS_Store',
+				'out',
+				'.tsconfig.json',
+				'project/ios/*.xcodeproj/xcuserdata',
+				'project/ios/*.xcodeproj/xcshareddata',
+				'project/ios/*.xcodeproj/project.xcworkspace',
+				`${name}.gyp`,
+				'package-lock.json',
+				searchModules,
+			].join('\n'));
 		}
 	}
 
