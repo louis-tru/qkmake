@@ -29,12 +29,12 @@
  * ***** END LICENSE BLOCK ***** */
 
 import util from 'qktool';
-import * as fs from 'qktool/fs';
+import * as fs from 'qktool/node/fs';
 import * as child_process from 'child_process';
 import keys from 'qktool/keys';
 import uri from 'qktool/uri';
 import paths from './paths';
-import { exec } from 'qktool/syscall';
+import { exec } from 'qktool/node/syscall';
 const uglify = require('./uglify');
 
 export const searchModules = 'node_modules';
@@ -135,7 +135,7 @@ const init_tsconfig = {
 		"deps",
 		".git",
 		"project",
-		searchModules,
+		`${searchModules}`,
 	]
 };
 
@@ -146,6 +146,10 @@ export function resolveLocal(...args: string[]) {
 export function parse_json_file(filename: string, strict?: boolean) {
 	try {
 		var str = fs.readFileSync(filename, 'utf-8');
+		if (filename.indexOf('.gyp') != -1) {
+			// remove comments for gyp file
+			str = str.replace(/('[^']*')|("[^"]*")|#.*$/mg, (_,a,b) => a||b||'');
+		}
 		if (strict) {
 			return JSON.parse(str);
 		} else {
@@ -240,7 +244,8 @@ export interface PackageJson extends Dict {
 	id?: string;
 	app?: string;
 	detach?: string | string[];
-	skip?: string | string[];
+	exclude?: string | string[]; // exclude resources copying, such as .md .txt .json .ts .tsx etc.
+	excludeNative?: string | string[]; // exclude native compileing, such as .c .cpp .h .mm .m etc.
 	skipInstall?: number; // 0 | 1 only self | 2 all of self and modules
 	minify?: boolean;
 	symlink?: string;
@@ -307,7 +312,7 @@ class Package {
 	private _target_types     = '';
 	private _versions         = { filesHash: {} as Dict<string>, pkgzFiles: {} as Dict<string>};
 	private _detach_file: string[] = [];
-	private _skip_file: string[] = [];
+	private _exclude_file: string[] = [];
 	private _enable_minify     = false;
 	private _tsconfig_outDir   = '';
 	private _host: Build;
@@ -331,39 +336,41 @@ class Package {
 		this._target_small = resolveLocal(host.target_small, output);
 		this._target_build = resolveLocal(host.target_build, output);
 		this._target_types = resolveLocal(host.target_types, output);
-		this._skip_file    = this.get_skip_files(this.json, outputName);
+		this._exclude_file = this.get_exclude_files(this.json, outputName);
 		this._detach_file  = this.get_detach_files(this.json, outputName);
 		this._skipInstall  = skipInstall;
 	}
 
-	// getting skip files list
+	// getting exclude files list
 	// "name" pkg
-	private get_skip_files(pkg_json: PkgJson, name: string) {
-		var rev: string[] = [];
+	private get_exclude_files(pkg_json: PkgJson, name: string) {
+		var skip: string[] = [];
 
 		// default skip files
-		rev.push('tsconfig.json');
-		rev.push('binding.gyp');
-		rev.push('versions.json');
-		rev.push('package-lock.json');
-		rev.push('out');
-		rev.push('project');
+		skip.push('tsconfig.json');
+		skip.push('native.gyp');
+		skip.push('versions.json');
+		skip.push('package-lock.json');
+		skip.push('out');
+		skip.push('project');
 
-		if (pkg_json.skip) {
-			for (const ex of Array.isArray(pkg_json.skip) ? pkg_json.skip: [ String(pkg_json.skip) ]) {
-				if (rev.indexOf(ex) == -1)
-					rev.push(ex);
+		// add package.json exclude files
+		if (pkg_json.exclude) {
+			for (const ex of Array.isArray(pkg_json.exclude) ? pkg_json.exclude: [ String(pkg_json.exclude) ]) {
+				if (skip.indexOf(ex) == -1)
+					skip.push(ex);
 			}
-			delete pkg_json.skip;
+			delete pkg_json.exclude;
 		}
+		// add tsconfig.json exclude files
 		if (fs.existsSync(this._source + '/tsconfig.json')) {
 			for (const ex of parse_json_file(this._source + '/tsconfig.json').exclude || []) {
-				if (rev.indexOf(ex) == -1)
-					rev.push(ex);
+				if (skip.indexOf(ex) == -1)
+					skip.push(ex);
 			}
 		}
 
-		return rev;
+		return skip;
 	}
 
 	// Getting detach of files list
@@ -411,9 +418,10 @@ class Package {
 		// build tsc
 		if (fs.existsSync(source + '/tsconfig.json')) {
 			self._tsconfig_outDir = this._target_build;
+			let json = parse_json_file(source + '/tsconfig.json');
 			let tsconfig = {
 				extends: './tsconfig.json',
-				exclude: [searchModules,'out','.git'],
+				exclude: [...(Array.isArray(json.exclude) ? json.exclude : []), searchModules,'out','.git'],
 				compilerOptions: {
 					outDir: self._target_build,
 					declarationDir: self._target_types,
@@ -423,7 +431,6 @@ class Package {
 			if (self === self._host.package) {
 				tsconfig.exclude.push('project');
 			}
-			let json = parse_json_file(source + '/tsconfig.json');
 			let tsBuildInfoFile = json.compilerOptions && json.compilerOptions.tsBuildInfoFile;
 			if (tsBuildInfoFile) {
 				fs.rm_r_sync(uri.isAbsolute(tsBuildInfoFile) ?
@@ -518,15 +525,22 @@ class Package {
 		}
 	}
 
+	private is_exclude_file(pathname: string) {
+		// exclude files
+		for (let name of this._exclude_file) {
+			if ( pathname.indexOf(name) == 0 ) { // exclude this file
+				this.console_log('Skip', pathname);
+				return true;
+			}
+		}
+		return false;
+	}
+
 	private build_file(pathname: string) {
 		let self = this;
 		// skip files
-		for (let name of self._skip_file) {
-			if ( pathname.indexOf(name) == 0 ) { // skip this file
-				self.console_log('Skip', pathname);
-				return;
-			}
-		}
+		if ( self.is_exclude_file(pathname) )
+			return;
 		let source        = resolveLocal(self._source, pathname);
 		let target_small  = resolveLocal(self._target_small, pathname);
 		let target_build  = resolveLocal(self._target_build, pathname);
@@ -619,7 +633,7 @@ class Package {
 					let outname = isRoot ? json.name: `${json.name}@${json.version}`;
 
 					if (!self._host.package.modules[outname]) {
-						// skipInstall value is inherit from parent ??
+						// skipInstall value is inherit from parent ?? 2 means all skip
 						let skipInstall = self._skipInstall == 2 ? 2: (json.skipInstall || 0);
 						let pkg = new Package(self._host, pkg_path,
 								`${searchModules}/${outname}`, outname, json, skipInstall);
@@ -627,7 +641,7 @@ class Package {
 						self._host.package.modules[outname] = pkg;
 					}
 
-					if (!isRoot) { // Ignore root module
+					if (!isRoot) { // Ignore root module symlink
 						let symlink = uri.relative(`${self._target_build}/${pathname}`,
 							`${self._host.target_build}/${searchModules}/${outname}`);
 						let dir = self.modules_symlink[pathname];
@@ -639,12 +653,12 @@ class Package {
 					}
 				}
 			}
-		} else {
+		} else if (!this.is_exclude_file(basename) ) { // not skip dir
 			for (var stat of fs.listSync(source)) {
 				if (stat.name[0] != '.' || !self._host.ignore_hide) {
 					if (['project','out','package-lock.json','tsconfig.json'].indexOf(stat.name) == -1) {
 						var basename = stat.name;
-						let path = pathname ? pathname + '/' + basename : basename; 
+						let path = pathname ? pathname + '/' + basename : basename;
 						if ( stat.isFile() ) {
 							self.build_file(path);
 						} else if ( stat.isDirectory() ) {

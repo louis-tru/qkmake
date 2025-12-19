@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 
-import fs = require('qktool/fs');
+import fs = require('qktool/node/fs');
 import Build, {searchModules} from './build';
 import Export from './export';
 import {start} from './server';
 import * as argument from 'qktool/arguments';
-import {spawn} from 'qktool/syscall';
+import {spawn} from 'qktool/node/syscall';
 import uri from 'qktool/uri';
-import { getLocalNetworkHost } from 'qktool/network_host';
+import { getLocalNetworkHost } from 'qktool/node/network_host';
 
 const args = process.argv.slice(2);
 const cmd = args.shift();

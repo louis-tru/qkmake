@@ -3,7 +3,7 @@
 process.chdir(__dirname);
 
 if (process.argv[2] == 'build') {
-	const fs = require('qktool/fs');
+	const fs = require('qktool/node/fs');
 	fs.mkdirpSync('out/qkmake');
 	fs.copySync('LICENSE', 'out/qkmake/LICENSE');
 	fs.copySync('README.md', 'out/qkmake/README.md');

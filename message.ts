@@ -29,7 +29,7 @@
  * ***** END LICENSE BLOCK ***** */
 
 import { WSService } from 'qktool/ws/service';
-import { Server } from 'qktool/server';
+import { Server } from 'qktool/node/server';
 
 export default class Message extends WSService {
 	EVENTS() {

@@ -41,7 +41,7 @@
 	"dependencies": {
 		"marked": "~0.3.6",
 		"uglify-es": "~3.0.28",
-		"qktool": "~0.1.11",
+		"qktool": "~0.2.0",
 		"typescript": "~5.8.2"
 	},
 	"devDependencies": {

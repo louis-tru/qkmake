@@ -30,14 +30,14 @@
 
 import util from 'qktool/util';
 import paths from './paths';
-import * as fs from 'qktool/fs';
+import * as fs from 'qktool/node/fs';
 import uri from 'qktool/uri';
-import {syscall,execSync,exec} from 'qktool/syscall';
+import {syscall,execSync,exec} from 'qktool/node/syscall';
 import Build, {
 	PackageJson,native_source,
 	native_header,parse_json_file, resolveLocal, searchModules
 } from './build';
-import { getLocalNetworkHost } from 'qktool/network_host';
+import { getLocalNetworkHost } from 'qktool/node/network_host';
 
 const platform = process.platform;
 const host_os = platform == 'darwin' ? 'mac': platform;
@@ -67,9 +67,9 @@ type PkgJson = PackageJson;
 interface OutputGypi extends Dict {}
 
 class Package {
-	private _binding = false;
-	private _binding_gyp = false;
-	private _native = false;
+	private _native_source = false;
+	private _native_gyp = false;
+	private _native = false; // is native or dependence native
 	private _gypi: OutputGypi | null = null;
 
 	readonly host: Export;
@@ -177,8 +177,9 @@ class Package {
 				self.includes.push(pkg.gypi_path);
 				self.dependencies_recursion.push(pkg.outputName);
 			}
+			// add bundle resources to app pkg
 			for (let file of fs.readdirSync(`${self.host.output}/small`)) {
-				if (uri.basename(file).indexOf('run') != 0) { // skip run* files
+				if (uri.basename(file).indexOf('run') != 0) { // skip run.sh run* files for linux
 					if (skip_resources.indexOf(file) == -1)
 						self.bundle_resources.push(`small/${file}`);
 				}
@@ -190,12 +191,10 @@ class Package {
 
 		self.dependencies.splice(0, Infinity, ...filter_repeat(self.dependencies, this.outputName));
 
-		if (self._binding || self._binding_gyp) {
-			self._native = true;
-		} else { // is native
-			for (let pkg of deps) {
-				if (pkg._native || pkg._binding || pkg._binding_gyp) {
-					this._native = true;
+		if (!self._native) { // is not native yet
+			for (let pkg of deps) { // check dependencies is native
+				if (pkg._native) {
+					self._native = true;
 					break;
 				}
 			}
@@ -209,25 +208,28 @@ class Package {
 		let relative_source = uri.relative(host.output, source);
 
 		// add native and source
-		if ( fs.existsSync(source + '/binding.gyp') ) {
-			let targets = parse_json_file(source + '/binding.gyp').targets as any[];
+		if ( fs.existsSync(source + '/native.gyp') ) {
+			let targets = parse_json_file(source + '/native.gyp').targets as any[];
 			if (targets.length) {
 				let target = targets[0];
 				let target_name = target.target_name;
 				if (target_name) {
-					self.dependencies.push(uri.relative(host.source, source) + '/binding.gyp:' + target_name);
-					self._binding_gyp = true;
+					self.dependencies.push(uri.relative(host.source, source) + '/native.gyp:' + target_name);
+					self._native_gyp = true;
+					self._native = true;
 				}
 			}
 		}
 
+		let excludeNative = this.json.excludeNative; // exclude native source
 		let is_include_dirs = false;
-		let skip_source = [
+		let exclude_source = [
+			...(Array.isArray(excludeNative) ? excludeNative : []),
 			'out',
 			'project',
-			searchModules,
 			'package-lock.json',
-			`${self.json.name}.gyp`
+			`${self.json.name}.gyp`,
+			`${searchModules}`,
 		];
 
 		// add source
@@ -235,21 +237,25 @@ class Package {
 			let name = stat.name;
 			if (name[0] == '.')
 				return true; // cancel each
-			if (skip_source.indexOf(name) != -1)
+			if (exclude_source.indexOf(name) != -1)
 				return true;
 			if ( stat.isFile() ) {
 				let extname = uri.extname(name).toLowerCase();
-				if (native_source.indexOf(extname) != -1) {
-					if (!self._binding_gyp) {
-						self._binding = true;
+				if (native_source.indexOf(extname) != -1) { // is native source
+					if (!self._native_gyp) { // not use native.gyp, so add native source
+						self._native_source = true;
+						self._native = true;
 						self.sources.push( relative_source + '/' + pathname );
 					} // else not add native source
 					is_include_dirs = true;
 				} else {
 					if (native_header.indexOf(extname) != -1) {
+						if (!self._native_gyp)
+							self.sources.push( relative_source + '/' + pathname );
 						is_include_dirs = true;
+					} else {
+						self.sources.push( relative_source + '/' + pathname );
 					}
-					self.sources.push( relative_source + '/' + pathname );
 				}
 			} else if ( stat.isDirectory() ) {
 				if (name == searchModules) {
@@ -322,7 +328,7 @@ class Package {
 
 		// create gypi json data
 
-		let type = is_app ? 'executable' : self._binding ? 'static_library' : 'none';
+		let type = is_app ? 'executable' : self._native_source ? 'static_library' : 'none';
 		let gypi = 
 		{
 			'targets': [
@@ -373,7 +379,7 @@ class Package {
 			if (os == 'android') {
 				if ( self.native ) {
 					type = 'shared_library';
-					if ( !self._binding ) {
+					if ( !self._native_source ) { // no native source, create empty.c as native source
 						fs.cp_sync(`${__dirname}/export/empty.c`,
 							`${host.output}/empty.c`, { replace: false });
 						sources.push('empty.c');
@@ -397,7 +403,7 @@ class Package {
 				fs.cp_sync(`${__dirname}/export/run.sh`, `${out}/run.sh`, { replace: false });
 				fs.chmodSync(`${out}/run.sh`, 0o755);
 			}
-		} else if ( self._binding ) {
+		} else if ( self._native_source ) {
 			type = 'static_library';
 		}
 
@@ -699,7 +705,7 @@ export default class Export {
 		const os = self.os;
 
 		// build apps
-		if (!fs.existsSync(`${self.output}/all/package.json`)) {
+		if (!fs.existsSync(`${self.output}/build/package.json`)) {
 			await (new Build(self.source, self.output).build());
 		}
 

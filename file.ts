@@ -28,8 +28,8 @@
  * 
  * ***** END LICENSE BLOCK ***** */
 
-import { HttpService } from 'qktool/http_service';
-import * as fs from 'qktool/fs2';
+import { HttpService } from 'qktool/node/http_service';
+import * as fs from 'qktool/node/fs2';
 import * as remote_log from './remote_log';
 import {gen_html} from './marked/html';
 import {resolveLocal} from './build';

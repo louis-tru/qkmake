@@ -29,7 +29,7 @@
  * ***** END LICENSE BLOCK ***** */
 
 import * as remote_log from './remote_log';
-import {HttpService} from 'qktool/http_service';
+import {HttpService} from 'qktool/node/http_service';
 
 export default class Console extends HttpService {
 

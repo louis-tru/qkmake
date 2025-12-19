@@ -28,7 +28,7 @@
  * 
  * ***** END LICENSE BLOCK ***** */
 
-import * as fs from 'qktool/fs';
+import * as fs from 'qktool/node/fs';
 import * as path from 'path';
 
 function resolve(name: string) {
