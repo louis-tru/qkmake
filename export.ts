@@ -57,7 +57,7 @@ function xdgOpen(arg: string) {
 	if (host_os == 'linux') {
 		if (execSync(`which xdg-open`).code == 0) {
 			exec(`xdg-open ${arg}`); // open project
-			setTimeout(e=>process.exit(0),1e3); // force exit
+			setTimeout(() => process.exit(0), 1e3); // force exit
 		}
 	}
 }

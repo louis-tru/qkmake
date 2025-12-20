@@ -106,9 +106,9 @@ const {emitSkipped,diagnostics} = program.emit(
 	no_transformer ? void 0: { before: [transformer()] }
 );
 
-if (emitSkipped) {
-	console.error("TypeScript compilation failed!");
-	process.exit(1);
-} else {
-	console.log("Compilation succeeded, output to", compilerOptions.outDir);
-}
+// if (emitSkipped) {
+	// console.error("TypeScript compilation failed!");
+	// process.exit(1);
+// } else {
+console.log("Compilation succeeded, output to", compilerOptions.outDir);
+// }

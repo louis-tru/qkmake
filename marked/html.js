@@ -28,7 +28,7 @@
  * 
  * ***** END LICENSE BLOCK ***** */
 
-import * as fs from 'qktool/fs';
+import * as fs from 'qktool/node/fs';
 import * as marked from 'marked';
 var renderer = new marked.Renderer();
 

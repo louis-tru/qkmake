@@ -35,6 +35,7 @@ import keys from 'qktool/keys';
 import uri from 'qktool/uri';
 import paths from './paths';
 import { exec } from 'qktool/node/syscall';
+import bf, { Buffer} from 'qktool/buffer';
 const uglify = require('./uglify');
 
 export const searchModules = 'node_modules';
@@ -199,7 +200,7 @@ function copy_file(source: string, target: string) {
 	var rfd  = fs.openSync(source, 'r');
 	var wfd  = fs.openSync(target, 'w');
 	var size = 1024 * 100; // 100 kb
-	var buff = Buffer.alloc(size);
+	var buff = bf.alloc(size);
 	var len  = 0;
 	var hash = new Hash();
 	
@@ -216,7 +217,7 @@ function copy_file(source: string, target: string) {
 }
 
 function read_file_text(pathname: string) {
-	var buff = fs.readFileSync(pathname);
+	var buff = bf.from(fs.readFileSync(pathname));
 	var hash = new Hash();
 	hash.update_buff(buff);
 	return {
@@ -576,7 +577,7 @@ class Package {
 			case '.ts':
 			case '.tsx':
 			case '.jsx':
-				if (pathname.substring(-2 - extname.length, 2) == '.d') { // typescript define
+				if (pathname.endsWith(`.d${extname}`)) { // typescript define
 					return; // no copy declaration file
 				}
 				else if (self._tsconfig_outDir) {
@@ -625,7 +626,8 @@ class Package {
 
 		if (basename == searchModules) {
 			for (let stat of fs.listSync(source)) {
-				if (stat.name == '@types') continue;
+				if (stat.name == '@types')
+					continue;
 				let pkg_path = source + '/' + stat.name;
 				if (stat.isDirectory() && fs.existsSync( pkg_path + '/package.json')) {
 					let isRoot = self === self._host.package && pathname == searchModules;
