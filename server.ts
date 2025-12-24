@@ -1,7 +1,7 @@
 /* ***** BEGIN LICENSE BLOCK *****
  * Distributed under the BSD license:
  *
- * Copyright (c) 2015, blue.chu
+ * Copyright (c) 2015, Louis.chu
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -11,14 +11,14 @@
  *     * Redistributions in binary form must reproduce the above copyright
  *       notice, this list of conditions and the following disclaimer in the
  *       documentation and/or other materials provided with the distribution.
- *     * Neither the name of blue.chu nor the
+ *     * Neither the name of Louis.chu nor the
  *       names of its contributors may be used to endorse or promote products
  *       derived from this software without specific prior written permission.
  * 
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL blue.chu BE LIABLE FOR ANY
+ * DISCLAIMED. IN NO EVENT SHALL Louis.chu BE LIABLE FOR ANY
  * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
  * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
  * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
@@ -36,7 +36,7 @@ import Message from './message';
 import {ServerImpl,Options} from 'qktool/node/server';
 import * as remote_log from './remote_log';
 import {getLocalNetworkHost} from 'qktool/node/network_host';
-import { searchModules, parse_json_file, Hash } from './build';
+import { searchModules, parse_json_file, read_json_file_field, Hash } from './build';
 import * as fs from 'fs';
 import * as ts from 'typescript';
 import uri from 'qktool/uri';
@@ -77,12 +77,13 @@ export default function start_server(options?: Opt) {
 	return ser;
 }
 
-export async function start(runPoint: string, opts?: Opt) {
+export async function startWatch(runPoint: string, opts?: Opt) {
 	let src = uri.classicPath(uri.resolve(runPoint));
 	let ser = start_server(opts);
+	let exclude = read_json_file_field(`${src}/tsconfig.json`, 'exclude', []);
 	let tsconfig = {
-		extends: `./tsconfig.json`, 
-		exclude: [searchModules,'project','out','.git'],
+		extends: `./tsconfig.json`,
+		exclude: [...exclude,searchModules,'project','out','.git'],
 	};
 	fs.writeFileSync(`${src}/.tsconfig.json`, JSON.stringify(tsconfig, null, 2));
 

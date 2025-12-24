@@ -3,7 +3,7 @@
 import fs = require('qktool/node/fs');
 import Build, {searchModules} from './build';
 import Export from './export';
-import {start} from './server';
+import {startWatch} from './server';
 import * as argument from 'qktool/arguments';
 import {spawn} from 'qktool/node/syscall';
 import uri from 'qktool/uri';
@@ -125,7 +125,7 @@ else if (cmd == 'watch') {
 			await new Build(cwd, cwd + '/out').build();
 		}
 		// run web server
-		await start(cwd, {server: { port: argument.options.port, root: `${cwd}` }});
+		await startWatch(cwd, {server: { port: argument.options.port, root: `${cwd}` }});
 	})();
 } else {
 	printHelp();
