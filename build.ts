@@ -43,18 +43,7 @@ export const searchModules = 'node_modules';
 const base64_chars =
 	'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-'.split('');
 
-const init_code = `
-import { Application,Window,Jsx } from 'quark';
-
-const app = new Application();
-
-const win = new Window().render(
-	<free width="match" height="match">
-		<text value="Hello world" textSize={48} align="centerMiddle" />
-	</free>
-);
-`;
-
+const init_code = fs.readFileSync(`${__dirname}/export/init.ts.txt`, 'utf-8');
 
 const init_code2 = `
 

@@ -1,0 +1,23 @@
+
+import qk, { Application,Window,Jsx,ViewController } from 'quark';
+
+// Create the application and main window if not already created
+if (!qk.app) {
+	new Application();
+	new Window();
+}
+
+class Index extends ViewController {
+	render() {
+		return (
+			<free width="match" height="match" backgroundColor="#f00">
+				<text value="Hello world" textSize={48} align="centerMiddle" />
+			</free>
+		);
+	}
+}
+
+qk.app.activeWindow!.render(<Index ref="index" />);
+
+// have to export something for debug watching
+export default {};
