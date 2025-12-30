@@ -44,9 +44,6 @@
 		"qktool": "~0.2.11",
 		"typescript": "~5.8.2"
 	},
-	"devDependencies": {
-		"@types/node": "~20.14.8"
-	},
 	"license": "BSD-2-Clause",
 	"bugs": {
 		"url": "https://github.com/louis-tru/quark/issues",
