@@ -41,8 +41,11 @@
 	"dependencies": {
 		"marked": "~0.3.8",
 		"uglify-es": "~3.0.28",
-		"qktool": "~0.2.11",
+		"qktool": "~0.2.12",
 		"typescript": "~5.8.2"
+	},
+	"devDependencies": {
+		"@types/node": "~22.13.14"
 	},
 	"license": "BSD-2-Clause",
 	"bugs": {
