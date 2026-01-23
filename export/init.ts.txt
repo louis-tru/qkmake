@@ -11,7 +11,7 @@ class Index extends ViewController {
 	render() {
 		return (
 			<free width="match" height="match" backgroundColor="#f00">
-				<text value="Hello world" textSize={48} align="centerMiddle" />
+				<text value="Hello world" fontSize={48} align="centerMiddle" />
 			</free>
 		);
 	}
