@@ -7,7 +7,7 @@
 		"sourceMap": false,
 		"outDir": "out/qkmake",
 		"rootDir": ".",
-		"baseUrl": ".",
+		// "ignoreDeprecations": "6.0",
 		"declaration": false,
 		"alwaysStrict": true,
 		"allowJs": true,
@@ -19,6 +19,7 @@
 		"strictPropertyInitialization": false,
 		"emitDecoratorMetadata": false,
 		"experimentalDecorators": true,
+		"types": ["node"],
 	},
 	"include": [
 		"**/*",
