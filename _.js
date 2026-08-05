@@ -15,6 +15,10 @@ if (process.argv[2] == 'build') {
 	fs.copySync('quark', 'out/qkmake/quark');
 	fs.copySync('quark.bat', 'out/qkmake/quark.bat');
 	fs.chmodSync('quark', 0o755);
+	fs.chmodSync('out/qkmake/quark', 0o755);
+	fs.chmodSync('out/qkmake/qktsc.js', 0o755);
+	fs.chmodSync('out/qkmake/shell.js', 0o755);
+	fs.chmodSync('out/qkmake/gyp.sh', 0o755);
 	if (! fs.existsSync(`out/qkmake/gyp-next`)) {
 		fs.symlinkSync(`../../gyp-next`, `out/qkmake/gyp-next`)
 	}
