@@ -15,7 +15,7 @@
 		"qktsc": "qktsc.js"
 	},
 	"scripts": {
-		"build": "tsc && node _.js build ",
+		"build": "node _.js build && tsc",
 		"install": "node _.js install"
 	},
 	"keywords": [
