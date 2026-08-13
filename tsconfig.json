@@ -7,7 +7,7 @@
 		"sourceMap": false,
 		"outDir": "out/qkmake",
 		"rootDir": ".",
-		// "ignoreDeprecations": "6.0",
+		"ignoreDeprecations": "6.0",
 		"declaration": false,
 		"alwaysStrict": true,
 		"allowJs": true,

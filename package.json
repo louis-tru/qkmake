@@ -42,7 +42,7 @@
 		"marked": "~0.3.8",
 		"uglify-es": "~3.0.28",
 		"qktool": "~0.2.13",
-		"typescript": "~5.8.2"
+		"typescript": "~6.0.3"
 	},
 	"devDependencies": {
 		"@types/node": "~22.13.14"
