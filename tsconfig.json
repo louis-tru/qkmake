@@ -8,6 +8,8 @@
 		"outDir": "out/qkmake",
 		"rootDir": ".",
 		"ignoreDeprecations": "6.0",
+		"esModuleInterop": false,
+		"allowSyntheticDefaultImports": false,
 		"declaration": false,
 		"alwaysStrict": true,
 		"allowJs": true,

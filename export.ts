@@ -401,8 +401,10 @@ class Package {
 				str = fs.readFileSync(`${out}/Makefile`, 'utf-8');
 				str = str.replace(/^TARGET_NAME\s*\??=.*/gm, `TARGET_NAME = ${name}`);
 				fs.writeFileSync(`${out}/Makefile`, str);
-				fs.cp_sync(`${__dirname}/export/run.sh`, `${out}/run.sh`, { replace: false });
-				fs.chmodSync(`${out}/run.sh`, 0o755);
+				str = fs.readFileSync(`${__dirname}/export/run.sh`, 'utf-8');
+				str = str.replace(/^target=/gm, `target=${name}`);
+				fs.writeFileSync(`${out}/${name}.sh`, str);
+				fs.chmodSync(`${out}/${name}.sh`, 0o755);
 			}
 		} else if ( self._native_source ) {
 			type = 'static_library';

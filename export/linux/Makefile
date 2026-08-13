@@ -29,16 +29,16 @@ x64 arm64:
 		LINK.target="$(call cc_prefix,$@)g++" AR.target="$(call cc_prefix,$@)ar" \
 		BUILDTYPE=$(BUILDTYPE) builddir="$(call builddir,$@)" \
 		ARCH=$@ ARCH_NAME="$(call arch_name,$@)" \
-		LDFLAGS="-Wl,-rpath=\\$$\$$ORIGIN/run/linux/$@"
-	mkdir -p $(OUTPUT)/small/run/linux/$@
+		LDFLAGS="-Wl,-rpath=\\$$\$$ORIGIN/lib/linux/$@"
+	mkdir -p $(OUTPUT)/small/lib/linux/$@
 
 	if [ -f "$(call builddir,$@)/*.so" ]; then \
-		cp $(call builddir,$@)/*.so         $(OUTPUT)/small/run/linux/$@; fi
-	cp $(OUTPUT)/usr/linux/$@/*.so        $(OUTPUT)/small/run/linux/$@
-	cp $(call builddir,$@)/$(TARGET_NAME) $(OUTPUT)/small/run.linux.$@
-	[ -f run.linux.$@ ] || ln -s          ../../out/small/run.linux.$@ .
-	cp run.sh                             $(OUTPUT)/small
-	echo Complete target "$(OUTPUT)/small/run.linux.$@"
+		cp $(call builddir,$@)/*.so         $(OUTPUT)/small/lib/linux/$@; fi
+	cp $(OUTPUT)/usr/linux/$@/*.so        $(OUTPUT)/small/lib/linux/$@
+	cp $(call builddir,$@)/$(TARGET_NAME) $(OUTPUT)/small/$(TARGET_NAME).linux.$@
+	[ -f $(TARGET_NAME).linux.$@ ] || ln -s ../../out/small/$(TARGET_NAME).linux.$@ .
+	cp $(TARGET_NAME).sh                  $(OUTPUT)/small/$(TARGET_NAME).sh
+	echo Complete target "$(OUTPUT)/small/$(TARGET_NAME).linux.$@"
 
 clean:
 	rm -rfv $(call builddir,x64)

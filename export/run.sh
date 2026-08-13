@@ -1,5 +1,6 @@
 #!/bin/sh
 
+target=
 base=$(dirname "$0")
 
 cd $base
@@ -17,6 +18,6 @@ elif [ "$arch" = "aarch64" ]; then
 	arch="arm64"
 fi
 
-# run=`readlink -f run.$os.$arch`
+# run=`readlink -f $target.$os.$arch`
 
-./run.$os.$arch "$@"
+./$target.$os.$arch "$@"

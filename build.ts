@@ -95,6 +95,8 @@ const init_tsconfig = {
 		"target": "ES2019",
 		"lib": [ "ES2019" ],
 		"ignoreDeprecations": "6.0",
+		"esModuleInterop": false,
+		"allowSyntheticDefaultImports": false,
 		"sourceMap": false,
 		"outDir": "out/build",
 		"rootDir": ".",
