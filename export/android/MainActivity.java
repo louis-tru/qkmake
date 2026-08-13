@@ -47,15 +47,26 @@ public class MainActivity extends Activity {
 	}
 
 	protected String startupArgv() {
+		// This string is parsed into argc/argv and passed to Quark's native main entry.
+		// In a debuggable build, an Intent extra can temporarily override the default
+		// startup arguments without rebuilding the APK, for example:
+		//   adb shell am start -n <package>/.MainActivity --es argv "jsapi --aaside"
 		if (isDebugger()) {
-			// network startup, debug mode and watch mode.
-			// need start debug server, exec command in qk project folder:
+			String argv = getIntent().getStringExtra("argv");
+			if (argv != null && !argv.isEmpty())
+				return argv;
+
+			// Default debug startup: load the application from qkmake's development
+			// server, watch for updates, and expose the JavaScript debugger. Start the
+			// server from the Qk project directory before launching the application:
 			//   qkmake watch
 			return ARGV_DEBUG;
-			// local startup, debug mode
+
+			// For offline debugging, use the application bundled in APK assets while
+			// keeping the JavaScript debugger enabled:
 			// return ARGV_DEBUG1;
 		} else {
-			// release mode, local startup
+			// Release builds always start the application bundled in APK assets.
 			return ARGV_RELEASE;
 		}
 	}

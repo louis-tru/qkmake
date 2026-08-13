@@ -34,16 +34,20 @@
 
 using namespace qk;
 
+// Application startup arguments are passed to js::Start() as a command-line string.
+// Adjust the entry URL, debugger address, or render options here as needed.
 Qk_Main() {
 #if DEBUG
-	// network startup, debug mode and watch mode.
-	// need start debug server, exec command in qk project folder:
-	//   qkmake watch
+	// Default debug startup: load from the qkmake development server, watch for
+	// updates, and expose the JavaScript debugger. Run `qkmake watch` first.
+	// qkmake appends `--jitless` on iOS to disable V8 JIT: current iOS releases
+	// can reject V8's generated executable code on a physical device. Inspector
+	// debugging remains available; release builds use JavaScriptCore instead.
 	return js::Start(ARGV_DEBUG);
-	// local startup, debug mode
+	// Offline debug alternative; qkmake also appends `--jitless` to this command.
 	// return js::Start(ARGV_DEBUG1);
 #else
-	// release mode, local startup
+	// Release startup: load the application bundled in the app resources.
 	return js::Start(ARGV_RELEASE);
 #endif
 }

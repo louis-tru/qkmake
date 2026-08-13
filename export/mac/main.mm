@@ -34,11 +34,17 @@
 
 using namespace qk;
 
+// Application startup arguments are passed to js::Start() as a command-line string.
+// Adjust the entry URL, debugger address, or render options here as needed.
 Qk_Main() {
 #if DEBUG
+	// Default debug startup: load from the qkmake development server, watch for
+	// updates, and expose the JavaScript debugger. Run `qkmake watch` first.
 	return js::Start(ARGV_DEBUG);
+	// Offline debug alternative: load bundled resources with debugging enabled.
 	// return js::Start(ARGV_DEBUG1);
 #else
+	// Release startup: load the application bundled in the app resources.
 	return js::Start(ARGV_RELEASE);
 #endif
 }

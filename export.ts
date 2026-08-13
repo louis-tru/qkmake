@@ -242,7 +242,7 @@ class Package {
 			if ( stat.isFile() ) {
 				let extname = uri.extname(name).toLowerCase();
 				if (native_source.indexOf(extname) != -1) { // is native source
-					if (!self._native_gyp) { // not use native.gyp, so add native source
+					if (!self._native_gyp && self.json.native) { // not use native.gyp, so add native source
 						self._native_source = true;
 						self._native = true;
 						self.sources.push( relative_source + '/' + pathname );
@@ -274,7 +274,7 @@ class Package {
 		}
 	}
 
-	private gen_xcode_gypi(): OutputGypi {
+	private gen_xcode_gypi(ios: boolean): OutputGypi {
 		let self = this;
 		let is_app = self.is_app;
 		let name = self.outputName;
@@ -317,8 +317,9 @@ class Package {
 			if (!fs.existsSync(`${out}/${main}.mm`)) { // main.mm
 				let start_argv = self.get_start_argv();
 				str = fs.readFileSync(`${template}/main.mm`).toString('utf8');
-				str = str.replace(/ARGV_DEBUG/, `"${start_argv[0]}"`);
-				str = str.replace(/ARGV_DEBUG1/, `fs_resources("${start_argv[1]}")`);
+				// use --jitless for ios, because ios not support jit
+				str = str.replace(/ARGV_DEBUG/, `"${start_argv[0]}${ios ? ' --jitless' : ''}"`);
+				str = str.replace(/ARGV_DEBUG1/, `fs_resources("${start_argv[1]}${ios ? ' --jitless' : ''}")`);
 				str = str.replace(/ARGV_RELEASE/, `fs_resources("${start_argv[2]}")`);
 				fs.writeFileSync(`${out}/${main}.mm`, str);
 			}
@@ -435,7 +436,7 @@ class Package {
 			this.gen_before();
 			let os = this.host.os;
 			if (os == 'ios' || os == 'mac') {
-				this._gypi = this.gen_xcode_gypi();
+				this._gypi = this.gen_xcode_gypi(os == 'ios');
 			} else if (os == 'android' || os == 'linux') {
 				this._gypi = this.gen_gypi();
 			} else {
@@ -547,7 +548,8 @@ export default class Export {
 		;
 
 		var log = syscall(shell);
-		console.error(log.stderr.join('\n'));
+		if (log.stderr.length)
+			console.error(log.stderr.join('\n'));
 		console.log(log.stdout.join('\n'));
 
 		return proj_path;
@@ -656,10 +658,10 @@ export default class Export {
 			if (version) str = str.replace(/versionName\s*=\s*('|")[^\'\"]+('|")/, `versionName = "${version}"`);
 
 			//android.externalNativeBuild.cmake.path = file("CMakeLists.txt")
-			str = str.replace(/^.*android\.externalNativeBuild\.cmake\..+$/mg, '');
+			str = str.replace(/\n?^.*android\.externalNativeBuild\.cmake\..+$/mg, '');
 			if (pkg.native) {
 				let cmake = uri.relative(`${app}`, out[0]);
-				str += `\nandroid.externalNativeBuild.cmake.path = "${cmake}"`;
+				str += `\nandroid.externalNativeBuild.cmake.path = "file(${cmake})"`;
 				str += `\nandroid.externalNativeBuild.cmake.version = "3.22.1"`;
 			}
 			fs.writeFileSync(build_gradle, str);

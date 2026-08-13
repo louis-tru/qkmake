@@ -240,6 +240,7 @@ export interface PackageJson extends Dict {
 	main: string;
 	version: string;
 	description?: string;
+	native?: boolean;
 	scripts?: Dict<string>;
 	author?: Dict<string>;
 	keywords?: string[];
@@ -363,6 +364,7 @@ class Package {
 		skip.push('package-lock.json');
 		skip.push('out');
 		skip.push('project');
+		skip.push(pkg_json.name + '.gyp');
 
 		// add package.json exclude files
 		if (pkg_json.exclude) {
@@ -841,7 +843,8 @@ export default class Build {
 				types: 'index',
 				version: '1.0.0',
 				description: "",
-				dependencies: {}
+				dependencies: {},
+				native: false,
 			};
 			// init_tsconfig.compilerOptions.outDir = `out/build`;
 
