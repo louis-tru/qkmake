@@ -30,6 +30,38 @@ if (process.argv[2] == 'build') {
 	const isWin = host_os == 'windows';
 	const quark = isWin ? 'quark.bat': 'quark';
 	const exec = `product/${host_os}/${host_arch}/${quark}`;
+	// Windows hosts are not currently supported, so Apple product links are
+	// restored only on Unix platforms where symbolic-link behavior is stable.
+	if (!isWin) {
+		// npm omits ordinary symbolic links from packed directories. Restore the
+		// Apple product links on Unix hosts after installing the package.
+		function ensureSymlink(target, link) {
+			try {
+				const stat = fs.lstatSync(link);
+				if (!stat.isSymbolicLink())
+					return; // Never replace a real file or directory during installation.
+				if (fs.readlinkSync(link) == target)
+					return;
+				fs.unlinkSync(link);
+			} catch (err) {
+				if (err.code != 'ENOENT')
+					throw err;
+			}
+			fs.symlinkSync(target, link);
+		}
+
+		const simulator = 'product/ios/Frameworks/iphonesimulator';
+		if (fs.existsSync(`${simulator}/Release`))
+			ensureSymlink('Release', `${simulator}/Debug`);
+
+		const framework = 'product/mac/Frameworks/macosx/quark.framework';
+		if (fs.existsSync(`${framework}/Versions/A`)) {
+			ensureSymlink('A', `${framework}/Versions/Current`);
+			ensureSymlink('Versions/Current/Headers', `${framework}/Headers`);
+			ensureSymlink('Versions/Current/Resources', `${framework}/Resources`);
+			ensureSymlink('Versions/Current/quark', `${framework}/quark`);
+		}
+	}
 	if (fs.existsSync(exec)) {
 		if (isWin) {
 			fs.writeFileSync(quark, `%~dp0product\\windows\\${host_arch}\\quark.exe %*`);
