@@ -39,7 +39,17 @@ function get_marked_template() {
 }
 
 renderer.heading = function(text, level, raw) {
-	var id = raw.toLowerCase().replace(/\`+/g, '').replace(/[^\w]+/g, '-');
+	var id = raw
+		.toLowerCase()
+		.replace(/<[^>]+>/g, '')
+		.replace(/\`+/g, '')
+		.replace(/[^\w\u3400-\u4dbf\u4e00-\u9fff-]+/g, '-')
+		.replace(/^-+|-+$/g, '') || 'section';
+	var count = this.m_ids[id] || 0;
+	this.m_ids[id] = count + 1;
+	if (count) {
+		id += '-' + (count + 1);
+	}
 	var toc = this.m_toc;
 
 	if ( toc ) {
@@ -62,17 +72,21 @@ renderer.heading = function(text, level, raw) {
 	return (
 		`<h${level} id="${id}">
 			${text}
-			<span><a class="mark" href="#${id}" id="${id}">#</a></span>
+			<span><a class="mark" href="#${id}" aria-label="Link to this section">#</a></span>
 		</h${level}>`
 	);
 };
 
 renderer.listitem = function(text) {
-	return '<li>' + text.replace(/\n/g, '<br/>') + '</li>\n';
+	// Marked uses newlines to separate nested list markup. Converting those
+	// newlines to <br> inserts visible blank rows between every tree level.
+	return '<li>' + text + '</li>\n';
 };
 
 renderer.paragraph = function(text) {
-	return '<p>' + text.replace(/\n/g, '<br/>') + '</p>\n';
+	// A source newline inside a Markdown paragraph is a soft wrap. Leave it for
+	// HTML whitespace collapsing instead of forcing the generated page to wrap.
+	return '<p>' + text + '</p>\n';
 };
 
 export function gen_html(text_md, title, template) {
@@ -81,6 +95,7 @@ export function gen_html(text_md, title, template) {
 
 	renderer.m_toc = [ ];
 	renderer.m_prev_level = 0;
+	renderer.m_ids = Object.create(null);
 	template = template || get_marked_template();
 
 	var body = marked.parser(tokens, { renderer: renderer });
@@ -92,9 +107,13 @@ export function gen_html(text_md, title, template) {
 	template = template.replace(/__placeholder_toc__/g, renderer.m_toc.join('\n'));
 	renderer.m_toc = null;
 	renderer.m_prev_level = 0;
+	renderer.m_ids = null;
 
 	template = template.replace(/__placeholder_title__/g, title || '');
 	template = template.replace(/__placeholder_body__/g, body);
+	// Generated documentation is committed as HTML. Avoid carrying Markdown
+	// source padding into every generated line and keep diff checks clean.
+	template = template.replace(/[ \t]+$/gm, '');
 
 	return { html: template, tokens: tokens };
 }
